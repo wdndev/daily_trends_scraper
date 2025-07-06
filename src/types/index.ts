@@ -4,4 +4,3 @@ export * from './llm.types';
 export * from './scraper.types';
 export * from './exporter.types';
 export * from './processor.types';
-export * from './config.types'; 
