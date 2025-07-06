@@ -2,6 +2,34 @@ import { WeiboPipeline, WeiboPipelineConfig } from './pipeline/WeiboPipeline';
 import { GithubTrendingPipeline, GithubTrendingPipelineConfig } from './pipeline/GithubTrendingPipeline';
 import { HFPaperPipeline, HFPaperPipelineConfig } from './pipeline/HFPaperPipeline';
 import { DomainPipeline, DomainPipelineConfig } from './pipeline/DomainPipeline';
+import { LLMConfig } from './types/llm.types';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// 重新加载环境变量的函数
+function reloadEnvVars(): void {
+  try {
+    const envPath = join(process.cwd(), '.env');
+    const envContent = readFileSync(envPath, 'utf-8');
+    
+    // 清除之前的环境变量
+    const envLines = envContent.split('\n');
+    envLines.forEach(line => {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const [key, ...valueParts] = trimmedLine.split('=');
+        if (key && valueParts.length > 0) {
+          const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+          process.env[key.trim()] = value.trim();
+        }
+      }
+    });
+  } catch (error) {
+    console.warn('无法重新加载 .env 文件:', error);
+  }
+}
+
+reloadEnvVars();
 
 // 统一配置接口
 interface PipelineConfigs {
@@ -15,7 +43,8 @@ interface PipelineConfigs {
 function createConfigs(
   jsonOutputDir: string, 
   markdownOutputDir: string,
-  useProxy: boolean = true
+  useProxy: boolean = true,
+  llmAnalysisConfig?: LLMConfig
 ): PipelineConfigs {
   const proxyConfig = useProxy ? { host: '127.0.0.1', port: 7890 } : undefined;
   
@@ -51,6 +80,7 @@ function createConfigs(
       includeCitations: true,
       includeDownloads: true,
       proxy: proxyConfig,
+      llmConfig: llmAnalysisConfig,
     },
     domain: {
       domain: ['LLM', 'Agent', 'NLP', 'AI'],
@@ -121,17 +151,26 @@ async function executePipeline<T>(
 async function main() {
   const jsonOutputDir = './data_pipeline';
   const markdownOutputDir = './data_pipeline';
-  const useProxy = true;
-  const enableLLMAnalysis = false;
-  const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy);
+  const useProxy = true; // 暂时禁用代理以测试连接
+
+  const llmAnalysisConfig: LLMConfig = {
+    provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
+    apiKey: process.env.API_KEY!,
+    baseUrl: process.env.BASE_URL || 'https://api.openai.com/v1',
+    modelName: process.env.MODEL_NAME || 'gpt-3.5-turbo',
+    maxTokens: 4000,
+    // temperature: 0.7,
+    stream: false,
+  };
+  const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy, llmAnalysisConfig);
   
   console.log('🔧 开始执行数据抓取流水线...\n');
   
   // 执行各个流水线
-  await executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats', [enableLLMAnalysis]);
-  await executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute');
-  await executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github);
-  await executePipeline('Weibo Hot', WeiboPipeline, configs.weibo);
+  await executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats');
+  // await executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute');
+  // await executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github);
+  // await executePipeline('Weibo Hot', WeiboPipeline, configs.weibo);
   
   console.log('\n🎉 所有流水线执行完成!');
 }
@@ -158,11 +197,10 @@ async function githubPipeline(
 async function huggingfacePipeline(
   jsonOutputDir: string = './data_pipeline', 
   markdownOutputDir: string = './data_pipeline', 
-  enableLLMAnalysis: boolean = true,
   useProxy: boolean = true
 ) {
   const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy);
-  await executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats', [enableLLMAnalysis]);
+  await executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats');
 }
 
 async function domainPipeline(

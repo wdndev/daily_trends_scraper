@@ -11,32 +11,6 @@ import { BaseProvider } from '../providers/BaseProvider';
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import fs from 'fs';
-
-// 重新加载环境变量的函数
-function reloadEnvVars(): void {
-  try {
-    const envPath = join(process.cwd(), '.env');
-    const envContent = readFileSync(envPath, 'utf-8');
-    
-    // 清除之前的环境变量
-    const envLines = envContent.split('\n');
-    envLines.forEach(line => {
-      const trimmedLine = line.trim();
-      if (trimmedLine && !trimmedLine.startsWith('#')) {
-        const [key, ...valueParts] = trimmedLine.split('=');
-        if (key && valueParts.length > 0) {
-          const value = valueParts.join('=').replace(/^["']|["']$/g, '');
-          process.env[key.trim()] = value.trim();
-        }
-      }
-    });
-  } catch (error) {
-    console.warn('无法重新加载 .env 文件:', error);
-  }
-}
-
-reloadEnvVars();
 
 /**
  * HuggingFace Papers流水线配置接口
@@ -50,6 +24,7 @@ export interface HFPaperPipelineConfig extends Partial<PipelineConfig> {
   includeCitations?: boolean;  // 是否包含引用数
   includeDownloads?: boolean;  // 是否包含下载数
   proxy?: ProxyConfig;  // 代理配置
+  llmConfig?: LLMConfig;  // LLM配置
 }
 
 /**
@@ -59,8 +34,9 @@ export interface HFPaperPipelineConfig extends Partial<PipelineConfig> {
 export class HFPaperPipeline extends BasePipeline {
   private hfConfig: HFPaperPipelineConfig;
   private arxivScraper: ArxivPapersScraper;
-  private llmProvider: BaseProvider;
-  private paperAnalysisPrompt: string;
+  private llmProvider?: BaseProvider;
+  private paperAnalysisPrompt?: string;
+  private useLLMAnalysis: boolean;
 
   constructor(config: HFPaperPipelineConfig = {}) {
     // 设置默认配置
@@ -76,6 +52,7 @@ export class HFPaperPipeline extends BasePipeline {
         includeCitations: true,
         includeDownloads: true,
         proxy: undefined,  // 默认不使用代理
+        llmConfig: undefined, // 默认不使用LLM
       },
       ...config,
     };
@@ -111,22 +88,21 @@ export class HFPaperPipeline extends BasePipeline {
       url: 'https://arxiv.org/list/cs/new',
       timeout: 30000,
     });
-    const llmConfig: LLMConfig = {
-      provider: process.env.PROVIDER as 'openai' | 'qianfan' ,
-      apiKey: process.env.API_KEY!,
-      baseUrl: process.env.BASE_URL || 'https://api.openai.com/v1',
-      modelName: process.env.MODEL_NAME || 'gpt-3.5-turbo',
-      maxTokens: 4000,
-      // temperature: 0.7,
-      stream: false,
-    };
-    console.log(llmConfig);
-    if (llmConfig.provider === 'qianfan') {
-      this.llmProvider = new QianfanProvider(llmConfig);
-    } else {
-      this.llmProvider = new OpenAIProvider(llmConfig);
+    
+    this.useLLMAnalysis = defaultConfig.llmConfig !== undefined;
+
+    if (this.useLLMAnalysis && defaultConfig.llmConfig) {
+      const llmConfig = defaultConfig.llmConfig;
+      console.log("llmConfig: ", llmConfig);
+      if (llmConfig.provider === 'qianfan') {
+        this.llmProvider = new QianfanProvider(llmConfig);
+      } else {
+        this.llmProvider = new OpenAIProvider(llmConfig);
+      }
+      this.paperAnalysisPrompt = this.loadPromptTemplate(join(__dirname, 'prompts', 'paper_analysis.txt'));
     }
-    this.paperAnalysisPrompt = this.loadPromptTemplate(join(__dirname, 'prompts', 'paper_analysis.txt'));
+
+    
     // console.log("paperAnalysisPrompt: ", this.paperAnalysisPrompt);
   }
 
@@ -353,7 +329,7 @@ export class HFPaperPipeline extends BasePipeline {
   /**
    * 处理单篇论文的完整流程
    */
-  private async processPaper(item: TrendItem, enableLLMAnalysis: boolean = true): Promise<{ item: TrendItem; success: boolean }> {
+  private async processPaper(item: TrendItem): Promise<{ item: TrendItem; success: boolean }> {
     try {
       if (!item.url) {
         return { item, success: false };
@@ -381,7 +357,7 @@ export class HFPaperPipeline extends BasePipeline {
       let llmAnalysis = '';
       
       // 只有在启用LLM分析且有论文内容时才进行LLM分析
-      if (enableLLMAnalysis && originalPaperContent) {
+      if (this.useLLMAnalysis && originalPaperContent && this.llmProvider && this.paperAnalysisPrompt) {
         // paperContent长度限制，如果超过6000个单词，选择中间6000个单词，其余删除
         let paperContent = originalPaperContent;
         const paperContentLength = paperContent.split(' ').length;
@@ -414,7 +390,7 @@ export class HFPaperPipeline extends BasePipeline {
         updated: paperUpdated,
       };
 
-      this.log(`✅ 论文处理完成: ${item.title}${enableLLMAnalysis ? ' (含LLM分析)' : ' (仅抓取数据)'}`);
+      this.log(`✅ 论文处理完成: ${item.title}${this.useLLMAnalysis ? ' (含LLM分析)' : ' (仅抓取数据)'}`);
       return { item, success: true };
     } catch (error) {
       this.log(`❌ 论文处理失败: ${item.title} - ${error}`);
@@ -424,9 +400,8 @@ export class HFPaperPipeline extends BasePipeline {
 
   /**
    * 执行HF流水线并返回详细结果
-   * @param enableLLMAnalysis 是否启用LLM分析，默认为true
    */
-  public async executeWithStats(enableLLMAnalysis: boolean = true): Promise<PipelineResult & { stats?: any }> {
+  public async executeWithStats(): Promise<PipelineResult & { stats?: any }> {
     const pipelineStartTime = Date.now();
     const result = await this.execute(false);
     
@@ -435,13 +410,13 @@ export class HFPaperPipeline extends BasePipeline {
       this.log(`HuggingFace Papers统计: 总计${stats.totalItems}条，含摘要${stats.withAbstract}条，含作者${stats.withAuthors}条，含引用${stats.withCitations}条，含下载${stats.withDownloads}条，平均引用${stats.avgCitations}，热门分类${stats.topCategory || '无'}`);
       
       // 处理论文数据（抓取详细信息 + 可选的LLM分析）
-      this.log(`开始处理 ${result.scrapedData.length} 篇论文${enableLLMAnalysis ? '（含LLM分析）' : '（仅抓取数据）'}...`);
+      this.log(`开始处理 ${result.scrapedData.length} 篇论文${this.useLLMAnalysis ? '（含LLM分析）' : '（仅抓取数据）'}...`);
       const llmStartTime = Date.now();
       
       const processedResults = await this.processWithRateLimit(
         result.scrapedData,
-        (item, index) => this.processPaper(item, enableLLMAnalysis),
-        enableLLMAnalysis ? 2 : 10 // LLM分析时每秒2次，仅抓取数据时每秒10次
+        (item, index) => this.processPaper(item),
+        this.useLLMAnalysis ? 2 : 10 // LLM分析时每秒2次，仅抓取数据时每秒10次
       );
       
       const llmEndTime = Date.now();
