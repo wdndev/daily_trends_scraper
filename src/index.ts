@@ -151,7 +151,7 @@ async function executePipeline<T>(
 async function main() {
   const jsonOutputDir = './data_pipeline';
   const markdownOutputDir = './data_pipeline';
-  const useProxy = true; // 暂时禁用代理以测试连接
+  const useProxy = false; 
 
   const llmAnalysisConfig: LLMConfig = {
     provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
@@ -162,15 +162,15 @@ async function main() {
     // temperature: 0.7,
     stream: false,
   };
-  const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy, llmAnalysisConfig);
+  const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy);
   
   console.log('🔧 开始执行数据抓取流水线...\n');
   
   // 执行各个流水线
   await executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats');
-  // await executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute');
-  // await executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github);
-  // await executePipeline('Weibo Hot', WeiboPipeline, configs.weibo);
+  await executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute');
+  await executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github);
+  await executePipeline('Weibo Hot', WeiboPipeline, configs.weibo);
   
   console.log('\n🎉 所有流水线执行完成!');
 }

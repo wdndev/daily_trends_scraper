@@ -57,4 +57,4 @@ export interface LLMModel {
   provider: string;
   maxTokens?: number;
   supportsStreaming?: boolean;
-} 
+}
