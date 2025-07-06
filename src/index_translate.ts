@@ -6,8 +6,8 @@ import { BaiduTranslateProvider } from './providers/BaiduTranslateProvider';
 async function main() {
   // 配置翻译提供者
   const translator = new BaiduTranslateProvider(
-    "qoX2filhgWozrmP9udUueTyq",
-    "BKG6Yr2lH6kLYKV8AE5IlRiO7nHThPMQ"
+    "xxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxx"
   );
 
   try {
