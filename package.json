@@ -1,0 +1,62 @@
+{
+  "name": "daily-trends-scraper",
+  "version": "1.0.0",
+  "description": "Daily trends scraper for GitHub Trending, Weibo Hot, and HuggingFace Papers",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "scrape": "pnpm build && pnpm start",
+    "clean": "rimraf dist",
+    "prebuild": "pnpm clean",
+    "type-check": "tsc --noEmit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "prepare": "husky install",
+    "domain": "ts-node src/index_domain.ts",
+    "domain:build": "pnpm build && node dist/index_domain.js",
+    "domain:test": "ts-node src/test_domain_simple.ts"
+  },
+  "keywords": [
+    "scraper",
+    "trends",
+    "github",
+    "weibo",
+    "huggingface"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@baiducloud/qianfan": "^0.2.3",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.3.0",
+    "moment": "^2.29.4",
+    "openai": "^4.20.0",
+    "pdf-parse": "^1.1.1",
+    "puppeteer": "^21.0.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/cheerio": "^0.22.35",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/pdf-parse": "^1.1.5",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.50.0",
+    "husky": "^8.0.0",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

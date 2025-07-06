@@ -1,0 +1,550 @@
+{
+  "timestamp": "2025-07-06T13:10:33.115Z",
+  "totalItems": 32,
+  "items": [
+    {
+      "id": "github-0-1751807427609",
+      "title": "NanmiCoder/MediaCrawler",
+      "description": "小红书笔记 | 评论爬虫、抖音视频 | 评论爬虫、快手视频 | 评论爬虫、B 站视频 ｜ 评论爬虫、微博帖子 ｜ 评论爬虫、百度贴吧帖子 ｜ 百度贴吧评论回复爬虫 | 知乎问答文章｜评论爬虫",
+      "url": "https://github.com/NanmiCoder/MediaCrawler",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.609Z",
+      "metadata": {
+        "author": "NanmiCoder",
+        "name": "MediaCrawler",
+        "language": "Python",
+        "stars": 27537,
+        "forks": 0,
+        "rank": 1
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-1-1751807427610",
+      "title": "dockur/macos",
+      "description": "macOS inside a Docker container.",
+      "url": "https://github.com/dockur/macos",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.610Z",
+      "metadata": {
+        "author": "dockur",
+        "name": "macos",
+        "language": "Shell",
+        "stars": 13945,
+        "forks": 0,
+        "rank": 2
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-2-1751807427610",
+      "title": "anthropics/prompt-eng-interactive-tutorial",
+      "description": "Anthropic's Interactive Prompt Engineering Tutorial",
+      "url": "https://github.com/anthropics/prompt-eng-interactive-tutorial",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.610Z",
+      "metadata": {
+        "author": "anthropics",
+        "name": "prompt-eng-interactive-tutorial",
+        "language": "Jupyter Notebook",
+        "stars": 14597,
+        "forks": 0,
+        "rank": 3
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-3-1751807427610",
+      "title": "vosen/ZLUDA",
+      "description": "CUDA on non-NVIDIA GPUs",
+      "url": "https://github.com/vosen/ZLUDA",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.610Z",
+      "metadata": {
+        "author": "vosen",
+        "name": "ZLUDA",
+        "language": "Rust",
+        "stars": 11954,
+        "forks": 0,
+        "rank": 4
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-4-1751807427610",
+      "title": "GyulyVGC/sniffnet",
+      "description": "Comfortably monitor your Internet traffic 🕵️‍♂️",
+      "url": "https://github.com/GyulyVGC/sniffnet",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.610Z",
+      "metadata": {
+        "author": "GyulyVGC",
+        "name": "sniffnet",
+        "language": "Rust",
+        "stars": 26149,
+        "forks": 0,
+        "rank": 5
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-5-1751807427610",
+      "title": "Alex313031/thorium",
+      "description": "Chromium fork named after radioactive element No. 90. Windows and MacOS/Raspi/Android/Special builds are in different repositories, links are towards the top of the README.md.",
+      "url": "https://github.com/Alex313031/thorium",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.610Z",
+      "metadata": {
+        "author": "Alex313031",
+        "name": "thorium",
+        "language": "C++",
+        "stars": 5975,
+        "forks": 0,
+        "rank": 6
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-6-1751807427610",
+      "title": "codecrafters-io/build-your-own-x",
+      "description": "Master programming by recreating your favorite technologies from scratch.",
+      "url": "https://github.com/codecrafters-io/build-your-own-x",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.610Z",
+      "metadata": {
+        "author": "codecrafters-io",
+        "name": "build-your-own-x",
+        "language": "Markdown",
+        "stars": 395614,
+        "forks": 0,
+        "rank": 7
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-7-1751807427611",
+      "title": "iib0011/omni-tools",
+      "description": "Self-hosted collection of powerful web-based tools for everyday tasks. No ads, no tracking, just fast, accessible utilities right from your browser!",
+      "url": "https://github.com/iib0011/omni-tools",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.611Z",
+      "metadata": {
+        "author": "iib0011",
+        "name": "omni-tools",
+        "language": "TypeScript",
+        "stars": 4328,
+        "forks": 0,
+        "rank": 8
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-8-1751807427611",
+      "title": "home-assistant/home-assistant.io",
+      "description": "📘 Home Assistant User documentation",
+      "url": "https://github.com/home-assistant/home-assistant.io",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:27.611Z",
+      "metadata": {
+        "author": "home-assistant",
+        "name": "home-assistant.io",
+        "language": "HTML",
+        "stars": 6742,
+        "forks": 0,
+        "rank": 9
+      },
+      "language": "global"
+    },
+    {
+      "id": "github-0-1751807429174",
+      "title": "NanmiCoder/MediaCrawler",
+      "description": "小红书笔记 | 评论爬虫、抖音视频 | 评论爬虫、快手视频 | 评论爬虫、B 站视频 ｜ 评论爬虫、微博帖子 ｜ 评论爬虫、百度贴吧帖子 ｜ 百度贴吧评论回复爬虫 | 知乎问答文章｜评论爬虫",
+      "url": "https://github.com/NanmiCoder/MediaCrawler",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.174Z",
+      "metadata": {
+        "author": "NanmiCoder",
+        "name": "MediaCrawler",
+        "language": "Python",
+        "stars": 27537,
+        "forks": 0,
+        "rank": 1
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-1-1751807429175",
+      "title": "Free-TV/IPTV",
+      "description": "M3U Playlist for free TV channels",
+      "url": "https://github.com/Free-TV/IPTV",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.175Z",
+      "metadata": {
+        "author": "Free-TV",
+        "name": "IPTV",
+        "language": "Python",
+        "stars": 6399,
+        "forks": 0,
+        "rank": 2
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-2-1751807429175",
+      "title": "dyang886/Game-Cheats-Manager",
+      "description": "Easily download and manage game cheats for your convenience",
+      "url": "https://github.com/dyang886/Game-Cheats-Manager",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.175Z",
+      "metadata": {
+        "author": "dyang886",
+        "name": "Game-Cheats-Manager",
+        "language": "Python",
+        "stars": 8295,
+        "forks": 0,
+        "rank": 3
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-3-1751807429175",
+      "title": "megadose/toutatis",
+      "description": "Toutatis is a tool that allows you to extract information from instagrams accounts such as e-mails, phone numbers and more",
+      "url": "https://github.com/megadose/toutatis",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.175Z",
+      "metadata": {
+        "author": "megadose",
+        "name": "toutatis",
+        "language": "Python",
+        "stars": 2756,
+        "forks": 0,
+        "rank": 4
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-4-1751807429175",
+      "title": "chrishayuk/mcp-cli",
+      "description": "",
+      "url": "https://github.com/chrishayuk/mcp-cli",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.175Z",
+      "metadata": {
+        "author": "chrishayuk",
+        "name": "mcp-cli",
+        "language": "Python",
+        "stars": 1428,
+        "forks": 0,
+        "rank": 5
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-5-1751807429175",
+      "title": "coleam00/local-ai-packaged",
+      "description": "Run all your local AI together in one package - Ollama, Supabase, n8n, Open WebUI, and more!",
+      "url": "https://github.com/coleam00/local-ai-packaged",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.175Z",
+      "metadata": {
+        "author": "coleam00",
+        "name": "local-ai-packaged",
+        "language": "Python",
+        "stars": 2211,
+        "forks": 0,
+        "rank": 6
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-6-1751807429176",
+      "title": "WEIFENG2333/VideoCaptioner",
+      "description": "🎬 卡卡字幕助手 | VideoCaptioner - 基于 LLM 的智能字幕助手 - 视频字幕生成、断句、校正、字幕翻译全流程处理！- A powered tool for easy and efficient video subtitling.",
+      "url": "https://github.com/WEIFENG2333/VideoCaptioner",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.176Z",
+      "metadata": {
+        "author": "WEIFENG2333",
+        "name": "VideoCaptioner",
+        "language": "Python",
+        "stars": 7967,
+        "forks": 0,
+        "rank": 7
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-7-1751807429176",
+      "title": "Genesis-Embodied-AI/Genesis",
+      "description": "A generative world for general-purpose robotics & embodied AI learning.",
+      "url": "https://github.com/Genesis-Embodied-AI/Genesis",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.176Z",
+      "metadata": {
+        "author": "Genesis-Embodied-AI",
+        "name": "Genesis",
+        "language": "Python",
+        "stars": 25718,
+        "forks": 0,
+        "rank": 8
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-8-1751807429176",
+      "title": "freqtrade/freqtrade",
+      "description": "Free, open source crypto trading bot",
+      "url": "https://github.com/freqtrade/freqtrade",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.176Z",
+      "metadata": {
+        "author": "freqtrade",
+        "name": "freqtrade",
+        "language": "Python",
+        "stars": 40215,
+        "forks": 0,
+        "rank": 9
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-9-1751807429176",
+      "title": "geekcomputers/Python",
+      "description": "My Python Examples",
+      "url": "https://github.com/geekcomputers/Python",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.176Z",
+      "metadata": {
+        "author": "geekcomputers",
+        "name": "Python",
+        "language": "Python",
+        "stars": 33381,
+        "forks": 0,
+        "rank": 10
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-10-1751807429177",
+      "title": "kyutai-labs/moshi",
+      "description": "Moshi is a speech-text foundation model and full-duplex spoken dialogue framework. It uses Mimi, a state-of-the-art streaming neural audio codec.",
+      "url": "https://github.com/kyutai-labs/moshi",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.177Z",
+      "metadata": {
+        "author": "kyutai-labs",
+        "name": "moshi",
+        "language": "Python",
+        "stars": 8576,
+        "forks": 0,
+        "rank": 11
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-11-1751807429177",
+      "title": "swisskyrepo/PayloadsAllTheThings",
+      "description": "A list of useful payloads and bypass for Web Application Security and Pentest/CTF",
+      "url": "https://github.com/swisskyrepo/PayloadsAllTheThings",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:29.177Z",
+      "metadata": {
+        "author": "swisskyrepo",
+        "name": "PayloadsAllTheThings",
+        "language": "Python",
+        "stars": 67782,
+        "forks": 0,
+        "rank": 12
+      },
+      "language": "python"
+    },
+    {
+      "id": "github-0-1751807432108",
+      "title": "iib0011/omni-tools",
+      "description": "Self-hosted collection of powerful web-based tools for everyday tasks. No ads, no tracking, just fast, accessible utilities right from your browser!",
+      "url": "https://github.com/iib0011/omni-tools",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.108Z",
+      "metadata": {
+        "author": "iib0011",
+        "name": "omni-tools",
+        "language": "TypeScript",
+        "stars": 4328,
+        "forks": 0,
+        "rank": 1
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-1-1751807432108",
+      "title": "humanlayer/12-factor-agents",
+      "description": "What are the principles we can use to build LLM-powered software that is actually good enough to put in the hands of production customers?",
+      "url": "https://github.com/humanlayer/12-factor-agents",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.108Z",
+      "metadata": {
+        "author": "humanlayer",
+        "name": "12-factor-agents",
+        "language": "TypeScript",
+        "stars": 6021,
+        "forks": 0,
+        "rank": 2
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-2-1751807432108",
+      "title": "pontusab/directories",
+      "description": "The Cursor & Windsurf community, find rules and MCPs",
+      "url": "https://github.com/pontusab/directories",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.108Z",
+      "metadata": {
+        "author": "pontusab",
+        "name": "directories",
+        "language": "TypeScript",
+        "stars": 3490,
+        "forks": 0,
+        "rank": 3
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-3-1751807432108",
+      "title": "MotiaDev/motia",
+      "description": "Unified Backend Framework for APIs, Events, and AI Agents",
+      "url": "https://github.com/MotiaDev/motia",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.108Z",
+      "metadata": {
+        "author": "MotiaDev",
+        "name": "motia",
+        "language": "TypeScript",
+        "stars": 3619,
+        "forks": 0,
+        "rank": 4
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-4-1751807432108",
+      "title": "Infisical/infisical",
+      "description": "Infisical is the open-source platform for secrets management, PKI, and SSH access.",
+      "url": "https://github.com/Infisical/infisical",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.108Z",
+      "metadata": {
+        "author": "Infisical",
+        "name": "infisical",
+        "language": "TypeScript",
+        "stars": 18615,
+        "forks": 0,
+        "rank": 5
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-5-1751807432108",
+      "title": "toeverything/AFFiNE",
+      "description": "There can be more than Notion and Miro. AFFiNE(pronounced [ə‘fain]) is a next-gen knowledge base that brings planning, sorting and creating all together. Privacy first, open-source, customizable and ready to use.",
+      "url": "https://github.com/toeverything/AFFiNE",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.108Z",
+      "metadata": {
+        "author": "toeverything",
+        "name": "AFFiNE",
+        "language": "TypeScript",
+        "stars": 52762,
+        "forks": 0,
+        "rank": 6
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-6-1751807432109",
+      "title": "directus/directus",
+      "description": "The flexible backend for all your projects 🐰 Turn your DB into a headless CMS, admin panels, or apps with a custom UI, instant APIs, auth & more.",
+      "url": "https://github.com/directus/directus",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.109Z",
+      "metadata": {
+        "author": "directus",
+        "name": "directus",
+        "language": "TypeScript",
+        "stars": 31415,
+        "forks": 0,
+        "rank": 7
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-7-1751807432109",
+      "title": "chrisvel/tududi",
+      "description": "Self-hosted task management with hierarchical organization, multi-language support, and Telegram integration. Built with React & Express.js",
+      "url": "https://github.com/chrisvel/tududi",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.109Z",
+      "metadata": {
+        "author": "chrisvel",
+        "name": "tududi",
+        "language": "TypeScript",
+        "stars": 700,
+        "forks": 0,
+        "rank": 8
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-8-1751807432109",
+      "title": "maurodesouza/profile-readme-generator",
+      "description": "🎨 Enhance your GitHub profile with this amazing tool, which allows you to create a personalized README quickly and easily. This profile README generator is the best you'll find 🚀",
+      "url": "https://github.com/maurodesouza/profile-readme-generator",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.109Z",
+      "metadata": {
+        "author": "maurodesouza",
+        "name": "profile-readme-generator",
+        "language": "TypeScript",
+        "stars": 2117,
+        "forks": 0,
+        "rank": 9
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-9-1751807432109",
+      "title": "iptv-org/iptv",
+      "description": "Collection of publicly available IPTV channels from all over the world",
+      "url": "https://github.com/iptv-org/iptv",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.109Z",
+      "metadata": {
+        "author": "iptv-org",
+        "name": "iptv",
+        "language": "TypeScript",
+        "stars": 95104,
+        "forks": 0,
+        "rank": 10
+      },
+      "language": "typescript"
+    },
+    {
+      "id": "github-10-1751807432109",
+      "title": "Mail-0/Zero",
+      "description": "Experience email the way you want with Mail0 – the first open source email app that puts your privacy and safety first. Join the discord: https://discord.gg/mail0",
+      "url": "https://github.com/Mail-0/Zero",
+      "source": "GitHub Trending",
+      "timestamp": "2025-07-06T13:10:32.109Z",
+      "metadata": {
+        "author": "Mail-0",
+        "name": "Zero",
+        "language": "TypeScript",
+        "stars": 8669,
+        "forks": 0,
+        "rank": 11
+      },
+      "language": "typescript"
+    }
+  ]
+}
