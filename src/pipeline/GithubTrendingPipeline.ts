@@ -4,7 +4,8 @@ import { JSONExporter } from '../exporters/JSONExporter';
 import { MarkdownExporter } from '../exporters/MarkdownExporter';
 import { ScraperConfig, ExporterConfig } from '../types';
 import { TrendItem } from '../types';
-
+import path from 'path';
+import fs from 'fs';
 /**
  * GitHub Trending流水线配置接口
  */
@@ -26,13 +27,14 @@ export interface GithubTrendingPipelineConfig extends Partial<PipelineConfig> {
  */
 export class GithubTrendingPipeline extends BasePipeline {
   private githubConfig: GithubTrendingPipelineConfig;
+  private pipelineName: string = "github";
 
   constructor(config: GithubTrendingPipelineConfig = {}) {
     // 设置默认配置
     const defaultConfig: GithubTrendingPipelineConfig = {
       ...{
-        jsonOutputDir: './data/github/json',
-        markdownOutputDir: './data/github/markdown',
+        jsonOutputDir: './data/json',
+        markdownOutputDir: './data/markdown',
         maxItems: 25,
         languages: ['python'],  // 默认只包含Python
         timeRange: 'daily',  // 默认每日趋势
@@ -62,6 +64,11 @@ export class GithubTrendingPipeline extends BasePipeline {
 
     const scraper = new GitHubTrendingScraper(scraperConfig);
 
+    const pipelineName = "github";
+
+    defaultConfig.jsonOutputDir = path.join(defaultConfig.jsonOutputDir || './data/json', pipelineName);
+    defaultConfig.markdownOutputDir = path.join(defaultConfig.markdownOutputDir || './data/markdown', pipelineName);
+
     // 创建导出器
     const exporters = GithubTrendingPipeline.createExporters(defaultConfig);
 
@@ -69,13 +76,14 @@ export class GithubTrendingPipeline extends BasePipeline {
     super(scraper, exporters, defaultConfig as PipelineConfig);
 
     this.githubConfig = defaultConfig;
+    this.pipelineName = pipelineName;
   }
 
   /**
    * 获取流水线名称
    */
   protected getPipelineName(): string {
-    return 'github';
+    return this.pipelineName;
   }
 
   /**
@@ -131,17 +139,25 @@ export class GithubTrendingPipeline extends BasePipeline {
   private static createExporters(config: GithubTrendingPipelineConfig) {
     const exporters = [];
 
-    // 生成默认文件名
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    const timeSuffix = config.timeRange !== 'daily' ? `_${config.timeRange}` : '';
-    const defaultFilename = `github_trending${timeSuffix}_${dateStr}`;
+    // 获取当前日期信息
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    // 日期字符串（YYYY-MM-DD格式）
+    const dateStr = `${year}-${month}-${day}`;
+    // 年月字符串（YYYYMM格式）
+    const yearMonthStr = `${year}${month}`;
+    const defaultFilename = `${dateStr}`;
 
     // 只有当jsonOutputDir不为空时才创建JSON导出器
     if (config.jsonOutputDir) {
+      const jsonOutputDir = path.join(config.jsonOutputDir, yearMonthStr);
+      // 创建jsonOutputDir目录
+      fs.mkdirSync(jsonOutputDir, { recursive: true });
       const jsonExporterConfig: ExporterConfig = {
         format: 'json',
-        outputDir: config.jsonOutputDir,
+        outputDir: jsonOutputDir,
         filename: `${defaultFilename}.json`,
       };
       exporters.push(new JSONExporter(jsonExporterConfig));
@@ -149,9 +165,12 @@ export class GithubTrendingPipeline extends BasePipeline {
 
     // 只有当markdownOutputDir不为空时才创建GitHub Markdown导出器
     if (config.markdownOutputDir) {
+      const mdOutputDir = path.join(config.markdownOutputDir, yearMonthStr);
+      // 创建mdOutputDir目录
+      fs.mkdirSync(mdOutputDir, { recursive: true });
       const mdExporterConfig: ExporterConfig = {
         format: 'markdown',
-        outputDir: config.markdownOutputDir,
+        outputDir: mdOutputDir,
         filename: `${defaultFilename}.md`,
       };
       exporters.push(new MarkdownExporter(mdExporterConfig));
@@ -427,6 +446,9 @@ export class GithubTrendingPipeline extends BasePipeline {
       const stats = this.getGithubStats(result.scrapedData);
       this.log(`GitHub Trending统计: 总计${stats.totalItems}条，含描述${stats.withDescription}条，含星标${stats.withStars}条，含Fork${stats.withForks}条，平均星标${stats.avgStars}，热门语言${stats.topLanguage || '无'}`);
       
+      // 更新索引文件
+      await this.updateMarkdownIndex(this.config.markdownOutputDir || './data/markdown', this.pipelineName);
+
       return {
         ...result,
         stats,

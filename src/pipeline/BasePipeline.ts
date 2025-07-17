@@ -172,6 +172,53 @@ export abstract class BasePipeline {
   }
 
   /**
+   * 更新markdown索引文件（index.md），用于检索，按照月份倒序、每月内日期倒序排列
+   * @param baseDir markdown基础目录（如.../markdown/weibo）
+   * @param pipelineName 用于生成链接标题（如 'Weibo Trending'）
+   */
+  protected async updateMarkdownIndex(baseDir: string, pipelineName: string): Promise<void> {
+    const indexFile = path.join(baseDir, 'index.md');
+    try {
+      // 读取基础目录下的所有子目录（月份文件夹）
+      const monthFolders = await fs.promises.readdir(baseDir, { withFileTypes: true });
+      // 过滤出所有目录并按年份和月份倒序排列
+      const validMonthFolders = monthFolders
+        .filter(dirent => dirent.isDirectory() && /^\d{6}$/.test(dirent.name))
+        .map(dirent => dirent.name)
+        .sort((a, b) => b.localeCompare(a)); // 倒序排列（最新月份在前）
+
+      let indexContent = `---\ntitle: ${pipelineName} \ndate: 2019-06-18\nauthor: wdndev\ntags: [${pipelineName}]\ncategories: \n- ${pipelineName}\nhidden: true\ncomments: false\n---\n\n`;
+
+      // 遍历每个月份文件夹
+      for (const monthFolder of validMonthFolders) {
+        const monthPath = path.join(baseDir, monthFolder);
+        // 读取月份文件夹下的所有文件
+        const dayFiles = await fs.promises.readdir(monthPath, { withFileTypes: true });
+        // 过滤出所有符合YYYY-MM-DD.md格式的文件并按日期倒序排列
+        const validDayFiles = dayFiles
+          .filter(dirent => dirent.isFile() && /^\d{4}-\d{2}-\d{2}\.md$/.test(dirent.name))
+          .map(dirent => dirent.name)
+          .sort((a, b) => b.localeCompare(a)); // 倒序排列（最新日期在前）
+        if (validDayFiles.length > 0) {
+          // 添加月份标题
+          indexContent += `## ${monthFolder}\n\n`;
+          // 添加该月份下的所有日期链接
+          for (const dayFile of validDayFiles) {
+            const dayWithoutExt = path.basename(dayFile, '.md');
+            indexContent += `- [${pipelineName} ${dayWithoutExt}](/daily/${pipelineName}/${monthFolder}/${dayWithoutExt})\n`;
+          }
+          indexContent += `\n`;
+        }
+      }
+      // 写入索引文件
+      await fs.promises.writeFile(indexFile, indexContent, 'utf-8');
+      this.log(`✅ 索引文件已更新: ${indexFile}`);
+    } catch (error) {
+      this.logError('❌ 更新索引文件失败', error);
+    }
+  }
+
+  /**
    * 执行完整的流水线
    */
   public async execute(isExportData: boolean = true): Promise<PipelineResult> {

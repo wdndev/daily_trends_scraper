@@ -43,11 +43,21 @@ function loadPromptTemplate(templatePath: string): string {
 // 每次运行时重新加载环境变量
 reloadEnvVars();
 
+// const llmConfig: LLMConfig = {
+//   provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
+//   apiKey: process.env.API_KEY || '',
+//   baseUrl: process.env.BASE_URL || 'https://api.openai.com/v1',
+//   modelName: process.env.MODEL_NAME || 'gpt-3.5-turbo',
+//   maxTokens: 4000,
+//   // temperature: 0.7,
+//   stream: false,
+// };
+
 const llmConfig: LLMConfig = {
-  provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
-  apiKey: process.env.API_KEY!,
-  baseUrl: process.env.BASE_URL || 'https://api.openai.com/v1',
-  modelName: process.env.MODEL_NAME || 'gpt-3.5-turbo',
+  provider: 'openai',
+  apiKey: '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',
+  baseUrl: 'https://openrouter.ai/api/v1',
+  modelName: 'deepseek/deepseek-chat-v3-0324:free',
   maxTokens: 4000,
   // temperature: 0.7,
   stream: false,
@@ -63,21 +73,21 @@ if (require.main === module) {
       provider = new OpenAIProvider(llmConfig);
     }
 
-    // 读取论文数据
-    const result_json = fs.readFileSync('result_data.json', 'utf-8');
-    const paper_text = JSON.parse(result_json).paper;
+    // // 读取论文数据
+    // const result_json = fs.readFileSync('result_data.json', 'utf-8');
+    // const paper_text = JSON.parse(result_json).paper;
     
-    // 读取prompt模板
-    const promptTemplate = loadPromptTemplate(join(__dirname, 'pipeline', 'prompts', 'paper_analysis.txt'));
+    // // 读取prompt模板
+    // const promptTemplate = loadPromptTemplate(join(__dirname, 'pipeline', 'prompts', 'paper_analysis.txt'));
     
-    // 替换模板中的占位符
-    const userContent = promptTemplate.replace('##paper_content##', paper_text);
+    // // 替换模板中的占位符
+    // const userContent = promptTemplate.replace('##paper_content##', paper_text);
 
-    console.log(userContent.length);
+    // console.log(userContent.length);
 
     const messages: LLMMessage[] = [
       // { role: 'system', content: '你是一个专业的帮助用户解决问题的助手。' },
-      { role: 'user', content: userContent },
+      { role: 'user', content: "你好啊，你是谁？" },
     ];
     const response = await provider.chat(messages);
     console.log(response.content);

@@ -87,6 +87,7 @@ export class MarkdownExporter extends BaseExporter {
       const metadata = paper.metadata || {};
       md += `### ${i+1}. [${paper.title}](${paper.url || '#'})\n\n`;
       if (paper.description) md += `${paper.description}\n\n`;
+      if (metadata.zh_summary) md += `{% hideToggle 中文摘要 %} \n\n${metadata.zh_summary}\n\n{% endhideToggle %}\n\n`;
       if (metadata.authors) md += `**Authors**: ${metadata.authors}\n\n`;
       if (metadata.llmAnalysis) md += `**LLM Analysis**: ${metadata.llmAnalysis}\n\n`;
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;
@@ -116,6 +117,7 @@ export class MarkdownExporter extends BaseExporter {
       const rank = metadata.rank || 0;
       md += `### ${rank}. [${paper.title}](${paper.url || '#'})\n`;
       if (paper.description) md += `${paper.description}\n\n`;
+      if (metadata.zh_summary) md += `{% hideToggle 中文摘要 %} \n\n${metadata.zh_summary}\n\n{% endhideToggle %}\n\n`;
       if (metadata.authors) md += `**Authors**: ${metadata.authors}\n\n`;
       if (metadata.llmAnalysis) md += `**LLM Analysis**: ${metadata.llmAnalysis}\n\n`;
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;

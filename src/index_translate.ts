@@ -6,8 +6,10 @@ import { BaiduTranslateProvider } from './providers/BaiduTranslateProvider';
 async function main() {
   // 配置翻译提供者
   const translator = new BaiduTranslateProvider(
-    "xxxxxxxxxxxx",
-    "xxxxxxxxxxxxxxxxxxxxx"
+    {
+      appid: "20250706002398792",
+      appkey: "YwQSdpuzEHt3vKqOgsww"
+    }
   );
 
   try {
@@ -16,11 +18,11 @@ async function main() {
     const text = "Agentic search such as Deep Research systems-where agents autonomously browse the web, synthesize information, and return comprehensive citation-backed answers-represents a major shift in how users interact with web-scale information.";
     
     const result = await translator.translate(text, 'en', 'zh');
-    console.log('原文:', text);
-    console.log('译文:', result);
+    console.log('原文:', result.original);
+    console.log('译文:', result.translation);
     console.log();
 
-    // 示例2: 批量翻译（手动实现）
+    // 示例2: 批量翻译（使用batchTranslate方法）
     console.log('=== 批量翻译示例 ===');
     const texts = [
       "Hello, world!",
@@ -28,16 +30,16 @@ async function main() {
       "This is a test message."
     ];
     
-    for (let i = 0; i < texts.length; i++) {
-      try {
-        const result = await translator.translate(texts[i], 'en', 'zh');
-        console.log(`原文 ${i + 1}:`, texts[i]);
-        console.log(`译文 ${i + 1}:`, result);
-        console.log();
-      } catch (error) {
-        console.error(`翻译文本失败: "${texts[i]}"`, error);
+    const batchResults = await translator.batchTranslate(texts, 'en', 'zh');
+    batchResults.forEach((result, i) => {
+      console.log(`原文 ${i + 1}:`, result.original);
+      if (result.error) {
+        console.log(`错误 ${i + 1}:`, result.error);
+      } else {
+        console.log(`译文 ${i + 1}:`, result.translation);
       }
-    }
+      console.log();
+    });
 
   } catch (error) {
     console.error('翻译过程中出现错误:', error);

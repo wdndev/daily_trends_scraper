@@ -1,16 +1,25 @@
 import axios from 'axios';
+import * as crypto from 'crypto';
+
+export interface BaiduTranslateConfig {
+  appid: string;
+  appkey: string;
+}
+
 
 /**
  * 百度翻译提供者
  * 基于百度翻译API的简单封装
  */
 export class BaiduTranslateProvider {
-  private apiKey: string;
-  private secretKey: string;
+  private appid: string;
+  private appkey: string;
+  private endpoint: string = 'http://api.fanyi.baidu.com';
+  private path: string = '/api/trans/vip/translate';
 
-  constructor(apiKey: string, secretKey: string) {
-    this.apiKey = apiKey;
-    this.secretKey = secretKey;
+  constructor(config: BaiduTranslateConfig) {
+    this.appid = config.appid;
+    this.appkey = config.appkey;
   }
 
   /**
@@ -18,83 +27,105 @@ export class BaiduTranslateProvider {
    * @param text 要翻译的文本
    * @param from 源语言代码
    * @param to 目标语言代码
-   * @returns 翻译后的文本
+   * @returns 翻译结果对象
    */
-  public async translate(text: string, from: string = 'en', to: string = 'zh'): Promise<string> {
-    const accessToken = await this.getAccessToken();
+  public async translate(text: string, from: string = 'en', to: string = 'zh'): Promise<any> {
+    // 生成随机数和签名
+    const salt = this.generateRandomSalt();
+    const sign = this.generateSign(text, salt);
     
-    const options = {
-      method: 'POST',
-      url: `https://aip.baidubce.com/rpc/2.0/mt/texttrans/v1?access_token=${accessToken}`,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      data: JSON.stringify({
-        from: from,
-        to: to,
-        q: text
-      })
+    // 构建请求参数
+    const payload = {
+      appid: this.appid,
+      q: text,
+      from: from,
+      to: to,
+      salt: salt,
+      sign: sign
     };
 
     try {
-      const response = await axios(options);
-      const data = response.data;
+      // 发送请求
+      const response = await axios.post(`${this.endpoint}${this.path}`, null, {
+        params: payload,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
       
-      // 调试：打印完整的API响应
-      // console.log('API响应:', JSON.stringify(data, null, 2));
-      
-      // 检查是否有错误
-      if (data.error_code) {
-        throw new Error(`翻译错误: ${data.error_msg || data.error_code}`);
+      // 处理API响应
+      if (response.data.error_code) {
+        throw new Error(`翻译API错误: ${response.data.error_code} - ${response.data.error_msg}`);
       }
       
-      // 解析翻译结果
-      if (data.trans_result && data.trans_result.length > 0) {
-        return data.trans_result[0].dst;
-      }
-      
-      // 如果没有trans_result，尝试其他可能的字段
-      if (data.result && data.result.trans_result && data.result.trans_result.length > 0) {
-        return data.result.trans_result[0].dst;
-      }
-      
-      throw new Error('翻译结果为空');
+      // 提取翻译结果
+      return {
+        original: text,
+        translation: response.data.trans_result?.map((item: any) => item.dst).join('\n') || '',
+        raw: response.data
+      };
     } catch (error: any) {
       if (error.response) {
-        // 服务器响应了错误状态码
-        throw new Error(`翻译失败: ${error.response.status} - ${error.response.data?.error_msg || error.response.statusText}`);
-      } else if (error.request) {
-        // 请求已发出但没有收到响应
-        throw new Error(`翻译失败: 网络错误 - 无法连接到服务器`);
-      } else {
-        // 其他错误
-        throw new Error(`翻译失败: ${error.message || error}`);
+        throw new Error(`HTTP错误: ${error.response.status} - ${error.response.statusText}`);
       }
+      throw new Error(`翻译失败: ${error.message}`);
     }
   }
 
   /**
-   * 获取访问令牌
-   * @returns 访问令牌
+   * 批量翻译文本
+   * @param texts 要翻译的文本数组
+   * @param from 源语言代码
+   * @param to 目标语言代码
+   * @param concurrency 并发请求数限制
+   * @returns 翻译结果数组
    */
-  private async getAccessToken(): Promise<string> {
-    const options = {
-      method: 'POST',
-      url: `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${this.apiKey}&client_secret=${this.secretKey}`,
-    };
-
-    try {
-      const response = await axios(options);
-      return response.data.access_token;
-    } catch (error: any) {
-      if (error.response) {
-        throw new Error(`获取访问令牌失败: ${error.response.status} - ${error.response.data?.error_description || error.response.statusText}`);
-      } else if (error.request) {
-        throw new Error(`获取访问令牌失败: 网络错误 - 无法连接到服务器`);
-      } else {
-        throw new Error(`获取访问令牌失败: ${error.message || error}`);
+  public async batchTranslate(
+    texts: string[], 
+    from: string = 'en', 
+    to: string = 'zh',
+    concurrency: number = 5
+  ): Promise<any[]> {
+    const results: any[] = [];
+    let index = 0;
+    
+    // 控制并发请求数的执行函数
+    const worker = async () => {
+      while (index < texts.length) {
+        const currentIndex = index++;
+        try {
+          const result = await this.translate(texts[currentIndex], from, to);
+          results[currentIndex] = result;
+        } catch (error) {
+          results[currentIndex] = {
+            original: texts[currentIndex],
+            error: (error as Error).message
+          };
+        }
       }
-    }
+    };
+    
+    // 创建并发工作线程
+    const workers = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(workers);
+    
+    return results;
   }
-} 
+
+  /**
+   * 生成随机数
+   * @returns 随机整数
+   */
+  private generateRandomSalt(): number {
+    return Math.floor(Math.random() * (65536 - 32768 + 1)) + 32768;
+  }
+
+  /**
+   * 生成签名
+   * @param text 翻译文本
+   * @param salt 随机数
+   * @returns 签名结果
+   */
+  private generateSign(text: string, salt: number): string {
+    const str = this.appid + text + salt + this.appkey;
+    return crypto.createHash('md5').update(str).digest('hex');
+  }
+}

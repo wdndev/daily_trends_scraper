@@ -50,8 +50,8 @@ function createConfigs(
   
   return {
     weibo: {
-      jsonOutputDir: `${jsonOutputDir}/weibo/json`,
-      markdownOutputDir: `${markdownOutputDir}/weibo/markdown`,
+      jsonOutputDir: jsonOutputDir,
+      markdownOutputDir: markdownOutputDir,
       maxItems: 55,
       filterAds: true,
       includeUserInfo: true,
@@ -59,8 +59,8 @@ function createConfigs(
       enableLogging: true,
     },
     github: {
-      jsonOutputDir: `${jsonOutputDir}/github/json`,
-      markdownOutputDir: `${markdownOutputDir}/github/markdown`,
+      jsonOutputDir: jsonOutputDir,
+      markdownOutputDir: markdownOutputDir,
       maxItems: 20,
       languages: ['python', 'typescript'],
       timeRange: 'daily',
@@ -70,8 +70,8 @@ function createConfigs(
       proxy: proxyConfig,
     },
     huggingface: {
-      jsonOutputDir: `${jsonOutputDir}/hf/json`,
-      markdownOutputDir: `${markdownOutputDir}/hf/markdown`,
+      jsonOutputDir: jsonOutputDir,
+      markdownOutputDir: markdownOutputDir,
       maxItems: 20,
       category: 'nlp',
       timeRange: 'day',
@@ -81,13 +81,21 @@ function createConfigs(
       includeDownloads: true,
       proxy: proxyConfig,
       llmConfig: llmAnalysisConfig,
+      translateConfig: {
+        appid: "20250706002398792",
+        appkey: "YwQSdpuzEHt3vKqOgsww",
+      },
     },
     domain: {
       domain: ['LLM', 'Agent', 'NLP', 'AI'],
       maxResults: 10,
       includeFullText: false,
-      jsonOutputDir: `${jsonOutputDir}/domain/json`,
-      markdownOutputDir: `${markdownOutputDir}/domain/markdown`,
+      jsonOutputDir: jsonOutputDir,
+      markdownOutputDir: markdownOutputDir,
+      translateConfig: {
+        appid: "20250706002398792",
+        appkey: "YwQSdpuzEHt3vKqOgsww",
+      },
     },
   };
 }
@@ -99,7 +107,7 @@ async function executePipeline<T>(
   config: any,
   executeMethod: string = 'executeWithStats',
   extraParams: any[] = []
-): Promise<void> {
+): Promise<{ success: boolean; pipelineName: string; result?: any; error?: any }> {
   console.log(`🚀 开始执行${pipelineName}流水线...`);
   
   try {
@@ -133,6 +141,8 @@ async function executePipeline<T>(
           }
         });
       }
+      
+      return { success: true, pipelineName, result };
     } else {
       console.log(`\n❌ ${pipelineName}流水线执行失败!`);
       if (result.errors) {
@@ -141,17 +151,19 @@ async function executePipeline<T>(
           console.log(`  ${index + 1}. ${error}`);
         });
       }
+      return { success: false, pipelineName, error: result.errors };
     }
   } catch (error) {
     console.error(`❌ 执行${pipelineName}流水线时发生异常:`, error);
+    return { success: false, pipelineName, error };
   }
 }
 
 // 主函数
 async function main() {
-  const jsonOutputDir = './data_pipeline';
-  const markdownOutputDir = './data_pipeline';
-  const useProxy = false; 
+  const jsonOutputDir = './data_pipeline/json';
+  const markdownOutputDir = './data_pipeline/markdown';
+  const useProxy = true; 
 
   const llmAnalysisConfig: LLMConfig = {
     provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
@@ -166,11 +178,43 @@ async function main() {
   
   console.log('🔧 开始执行数据抓取流水线...\n');
   
-  // 执行各个流水线
-  await executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats');
-  await executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute');
-  await executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github);
-  await executePipeline('Weibo Hot', WeiboPipeline, configs.weibo);
+  // 并行执行各个流水线
+  console.log('🚀 开始并行执行所有流水线...\n');
+  
+  const startTime = Date.now();
+  
+  const pipelineConfigs = [
+    { name: 'HuggingFace Papers', promise: executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats') },
+    { name: 'Domain Papers', promise: executePipeline('Domain Papers', DomainPipeline, configs.domain) },
+    { name: 'GitHub Trending', promise: executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github) },
+    { name: 'Weibo Hot', promise: executePipeline('Weibo Hot', WeiboPipeline, configs.weibo) }
+  ];
+  
+  const pipelinePromises = pipelineConfigs.map(config => config.promise);
+  
+  const results = await Promise.allSettled(pipelinePromises);
+  
+  // 统计执行结果
+  const totalTime = Date.now() - startTime;
+  const successfulPipelines = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+  const failedPipelines = results.length - successfulPipelines;
+  
+  console.log('\n📊 并行执行结果统计:');
+  console.log(`⏱️  总执行时间: ${totalTime}ms`);
+  console.log(`✅ 成功流水线: ${successfulPipelines}/${results.length}`);
+  console.log(`❌ 失败流水线: ${failedPipelines}/${results.length}`);
+  
+  // 显示失败的流水线
+  if (failedPipelines > 0) {
+    console.log('\n❌ 失败的流水线:');
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.log(`  ${index + 1}. ${pipelineConfigs[index].name}: Promise rejected`);
+      } else if (!result.value.success) {
+        console.log(`  ${index + 1}. ${result.value.pipelineName}: ${result.value.error}`);
+      }
+    });
+  }
   
   console.log('\n🎉 所有流水线执行完成!');
 }
@@ -212,8 +256,68 @@ async function domainPipeline(
   await executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute');
 }
 
+// 新增：并行执行所有流水线的函数
+async function executeAllPipelinesParallel(
+  jsonOutputDir: string = './data_pipeline/json',
+  markdownOutputDir: string = './data_pipeline/markdown',
+  useProxy: boolean = true,
+  llmAnalysisConfig?: LLMConfig
+) {
+  const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy, llmAnalysisConfig);
+  
+  console.log('🔧 开始并行执行数据抓取流水线...\n');
+  
+  const startTime = Date.now();
+  
+  const pipelineConfigs = [
+    { name: 'HuggingFace Papers', promise: executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats') },
+    { name: 'Domain Papers', promise: executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute') },
+    { name: 'GitHub Trending', promise: executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github) },
+    { name: 'Weibo Hot', promise: executePipeline('Weibo Hot', WeiboPipeline, configs.weibo) }
+  ];
+  
+  const pipelinePromises = pipelineConfigs.map(config => config.promise);
+  const results = await Promise.allSettled(pipelinePromises);
+  
+  // 统计执行结果
+  const totalTime = Date.now() - startTime;
+  const successfulPipelines = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+  const failedPipelines = results.length - successfulPipelines;
+  
+  console.log('\n📊 并行执行结果统计:');
+  console.log(`⏱️  总执行时间: ${totalTime}ms`);
+  console.log(`✅ 成功流水线: ${successfulPipelines}/${results.length}`);
+  console.log(`❌ 失败流水线: ${failedPipelines}/${results.length}`);
+  
+  // 显示失败的流水线
+  if (failedPipelines > 0) {
+    console.log('\n❌ 失败的流水线:');
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.log(`  ${index + 1}. ${pipelineConfigs[index].name}: Promise rejected`);
+      } else if (!result.value.success) {
+        console.log(`  ${index + 1}. ${result.value.pipelineName}: ${result.value.error}`);
+      }
+    });
+  }
+  
+  console.log('\n🎉 所有流水线执行完成!');
+  
+  return {
+    totalTime,
+    successfulPipelines,
+    failedPipelines,
+    results: results.map((result, index) => ({
+      name: pipelineConfigs[index].name,
+      success: result.status === 'fulfilled' && result.value.success,
+      result: result.status === 'fulfilled' ? result.value : null,
+      error: result.status === 'rejected' ? result.reason : null
+    }))
+  };
+}
+
 if (require.main === module) {
   main().catch(console.error);
 }
 
-export { domainPipeline, huggingfacePipeline, githubPipeline, weiboPipeline };
+export { domainPipeline, huggingfacePipeline, githubPipeline, weiboPipeline, executeAllPipelinesParallel };

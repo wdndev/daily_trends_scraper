@@ -3,7 +3,10 @@ import { ArxivPapersScraper } from '../scrapers/ArxivPapersScraper';
 import { JSONExporter } from '../exporters/JSONExporter';
 import { MarkdownExporter } from '../exporters/MarkdownExporter';
 import { ScraperConfig, ExporterConfig } from '../types';
+import { BaiduTranslateProvider, BaiduTranslateConfig } from '../providers/BaiduTranslateProvider';
 import { TrendItem } from '../types';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * 领域流水线配置接口
@@ -16,6 +19,7 @@ export interface DomainPipelineConfig extends Partial<PipelineConfig> {
     startDate?: string;
     endDate?: string;
   };
+  translateConfig?: BaiduTranslateConfig;
 }
 
 /**
@@ -24,19 +28,21 @@ export interface DomainPipelineConfig extends Partial<PipelineConfig> {
  */
 export class DomainPipeline extends BasePipeline {
   private domainConfig: DomainPipelineConfig;
-
+  private pipelineName: string;
+  private translateProvider?: BaiduTranslateProvider;
   constructor(config: DomainPipelineConfig = {}) {
     // 设置默认配置
     const defaultConfig: DomainPipelineConfig = {
       ...{
-        jsonOutputDir: './data_pipeline/domain/json',
-        markdownOutputDir: './data_pipeline/domain/markdown',
+        jsonOutputDir: './data/json',
+        markdownOutputDir: './data/markdown',
         domain: ['LLM'], // 默认使用LLM领域
         maxResults: 10,
         includeFullText: false,
         timeout: 30000,
         maxRetries: 3,
         enableLogging: true,
+        translateConfig: undefined,
       },
       ...config,
     };
@@ -54,19 +60,28 @@ export class DomainPipeline extends BasePipeline {
 
     const scraper = new ArxivPapersScraper(scraperConfig);
 
+    const pipelineName = "domain";
+
+    defaultConfig.jsonOutputDir = path.join(defaultConfig.jsonOutputDir || './data/json', pipelineName);
+    defaultConfig.markdownOutputDir = path.join(defaultConfig.markdownOutputDir || './data/markdown', pipelineName);
+
     // 创建导出器
     const exporters = DomainPipeline.createExporters(defaultConfig);
 
     // 调用父类构造函数
     super(scraper, exporters, defaultConfig as PipelineConfig);
     this.domainConfig = defaultConfig;
+    this.pipelineName = pipelineName;
+    if (defaultConfig.translateConfig) {
+      this.translateProvider = new BaiduTranslateProvider(defaultConfig.translateConfig);
+    }
   }
 
   /**
    * 获取流水线名称
    */
   protected getPipelineName(): string {
-    return "domain";
+    return this.pipelineName;
   }
 
   /**
@@ -75,16 +90,25 @@ export class DomainPipeline extends BasePipeline {
   private static createExporters(config: DomainPipelineConfig) {
     const exporters = [];
 
-    // 生成默认文件名
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    const defaultFilename = `arxiv_domain_${dateStr}`;
+    // 获取当前日期信息
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    // 日期字符串（YYYY-MM-DD格式）
+    const dateStr = `${year}-${month}-${day}`;
+    // 年月字符串（YYYYMM格式）
+    const yearMonthStr = `${year}${month}`;
+    const defaultFilename = `${dateStr}`;
 
     // 只有当jsonOutputDir不为空时才创建JSON导出器
     if (config.jsonOutputDir) {
+      const jsonOutputDir = path.join(config.jsonOutputDir, yearMonthStr);
+      // 创建jsonOutputDir目录
+      fs.mkdirSync(jsonOutputDir, { recursive: true });
       const jsonExporterConfig: ExporterConfig = {
         format: 'json',
-        outputDir: config.jsonOutputDir,
+        outputDir: jsonOutputDir,
         filename: `${defaultFilename}.json`,
       };
       exporters.push(new JSONExporter(jsonExporterConfig));
@@ -92,9 +116,12 @@ export class DomainPipeline extends BasePipeline {
 
     // 只有当markdownOutputDir不为空时才创建Markdown导出器
     if (config.markdownOutputDir) {
+      const mdOutputDir = path.join(config.markdownOutputDir, yearMonthStr);
+      // 创建mdOutputDir目录
+      fs.mkdirSync(mdOutputDir, { recursive: true });
       const mdExporterConfig: ExporterConfig = {
         format: 'markdown',
-        outputDir: config.markdownOutputDir,
+        outputDir: mdOutputDir,
         filename: `${defaultFilename}.md`,
       };
       exporters.push(new MarkdownExporter(mdExporterConfig));
@@ -125,10 +152,21 @@ export class DomainPipeline extends BasePipeline {
                 items = await this.enrichWithFullText(items);
             }
             // items的metadata添加domain
-            items.forEach(item => {
+            // 添加翻译功能
+            items.forEach(async item => {
+                let zh_summary = ''
+                if (this.translateProvider && item.description) {
+                    try {
+                        const translatedResult = await this.translateProvider.translate(item.description, 'en', 'zh');
+                        zh_summary = translatedResult.translation;
+                    } catch (error) {
+                        console.error("翻译失败: ", error);
+                    }
+                }
                 item.metadata = {
                     ...item.metadata,
-                    domain: `${domain}`
+                    domain: `${domain}`,
+                    zh_summary: zh_summary
                 };
                 item.source = `ArXiv Domain`;
             });
@@ -152,6 +190,36 @@ export class DomainPipeline extends BasePipeline {
         timestamp: new Date(),
       };
     }
+  }
+
+  public getDomainStats(items: TrendItem[]): {
+    totalItems: number;
+    withFullText: number;
+  } {
+    return {
+      totalItems: items.length,
+      withFullText: items.filter(item => item.metadata?.hasFullText).length,
+    };
+  }
+
+  /**
+   * 执行领域论文抓取并返回详细结果
+   */
+  public async executeWithStats(): Promise<PipelineResult & { stats?: any }> {
+    const result = await this.execute();
+    if (result.success && result.scrapedData) {
+      const stats = this.getDomainStats(result.scrapedData);
+      this.log(`领域论文统计: 总计${stats.totalItems}篇，含全文${stats.withFullText}篇`);
+
+      // 更新索引文件
+      await this.updateMarkdownIndex(this.config.markdownOutputDir || './data/markdown', this.pipelineName);
+
+      return {
+        ...result,
+        stats,
+      };
+    }
+    return result;
   }
 
   /**

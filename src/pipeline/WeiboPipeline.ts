@@ -4,6 +4,8 @@ import { JSONExporter } from '../exporters/JSONExporter';
 import { MarkdownExporter } from '../exporters/MarkdownExporter';
 import { ScraperConfig, ExporterConfig } from '../types';
 import { TrendItem } from '../types';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * 微博流水线配置接口
@@ -20,13 +22,13 @@ export interface WeiboPipelineConfig extends Partial<PipelineConfig> {
  */
 export class WeiboPipeline extends BasePipeline {
   private weiboConfig: WeiboPipelineConfig;
-
+  private pipelineName: string = "weibo";
   constructor(config: WeiboPipelineConfig = {}) {
     // 设置默认配置
     const defaultConfig: WeiboPipelineConfig = {
       ...{
-        jsonOutputDir: './data/weibo/json',
-        markdownOutputDir: './data/weibo/markdown',
+        jsonOutputDir: './data/json',
+        markdownOutputDir: './data/markdown',
         maxItems: 55,
         filterAds: true,
         includeUserInfo: true,
@@ -52,6 +54,11 @@ export class WeiboPipeline extends BasePipeline {
 
     const scraper = new WeiboHotScraper(scraperConfig);
 
+    const pipelineName = "weibo";
+
+    defaultConfig.jsonOutputDir = path.join(defaultConfig.jsonOutputDir || './data/json', pipelineName);
+    defaultConfig.markdownOutputDir = path.join(defaultConfig.markdownOutputDir || './data/markdown', pipelineName);
+
     // 创建导出器
     const exporters = WeiboPipeline.createExporters(defaultConfig);
 
@@ -59,13 +66,14 @@ export class WeiboPipeline extends BasePipeline {
     super(scraper, exporters, defaultConfig as PipelineConfig);
 
     this.weiboConfig = defaultConfig;
+    this.pipelineName = pipelineName;
   }
 
   /**
    * 获取流水线名称
    */
-  protected getPipelineName(): string {
-    return 'weibo';
+  public getPipelineName(): string {
+    return this.pipelineName;
   }
 
   /**
@@ -74,16 +82,25 @@ export class WeiboPipeline extends BasePipeline {
   private static createExporters(config: WeiboPipelineConfig) {
     const exporters = [];
 
-    // 生成默认文件名
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    const defaultFilename = `weibo_${dateStr}`;
+    // 获取当前日期信息
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    // 日期字符串（YYYY-MM-DD格式）
+    const dateStr = `${year}-${month}-${day}`;
+    // 年月字符串（YYYYMM格式）
+    const yearMonthStr = `${year}${month}`;
+    const defaultFilename = `${dateStr}`;
 
     // 只有当jsonOutputDir不为空时才创建JSON导出器
     if (config.jsonOutputDir) {
+      const jsonOutputDir = path.join(config.jsonOutputDir, yearMonthStr);
+      // 创建jsonOutputDir目录
+      fs.mkdirSync(jsonOutputDir, { recursive: true });
       const jsonExporterConfig: ExporterConfig = {
         format: 'json',
-        outputDir: config.jsonOutputDir,
+        outputDir: jsonOutputDir,
         filename: `${defaultFilename}.json`,
       };
       exporters.push(new JSONExporter(jsonExporterConfig));
@@ -91,9 +108,12 @@ export class WeiboPipeline extends BasePipeline {
 
     // 只有当markdownOutputDir不为空时才创建Markdown导出器
     if (config.markdownOutputDir) {
+      const mdOutputDir = path.join(config.markdownOutputDir, yearMonthStr);
+      // 创建mdOutputDir目录
+      fs.mkdirSync(mdOutputDir, { recursive: true });
       const mdExporterConfig: ExporterConfig = {
         format: 'markdown',
-        outputDir: config.markdownOutputDir,
+        outputDir: mdOutputDir,
         filename: `${defaultFilename}.md`,
       };
       exporters.push(new MarkdownExporter(mdExporterConfig));
@@ -207,6 +227,9 @@ export class WeiboPipeline extends BasePipeline {
       const stats = this.getWeiboStats(result.scrapedData);
       this.log(`微博热搜统计: 总计${stats.totalItems}条，含用户信息${stats.withUserInfo}条，含链接${stats.withUrl}条，平均热度${stats.avgHotValue}`);
       
+      // 更新索引文件
+      await this.updateMarkdownIndex(this.config.markdownOutputDir || './data/markdown', this.pipelineName);
+
       return {
         ...result,
         stats,

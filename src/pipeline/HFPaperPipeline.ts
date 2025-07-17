@@ -8,9 +8,12 @@ import { ArxivPapersScraper } from '../scrapers/ArxivPapersScraper';
 import { QianfanProvider } from '../providers/QianfanProvider';
 import { OpenAIProvider } from '../providers/OpenAIProvider';
 import { BaseProvider } from '../providers/BaseProvider';
-
+import { BaiduTranslateProvider, BaiduTranslateConfig } from '../providers/BaiduTranslateProvider';
+import path from 'path';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import fs from 'fs';
+
 
 /**
  * HuggingFace Papers流水线配置接口
@@ -25,7 +28,9 @@ export interface HFPaperPipelineConfig extends Partial<PipelineConfig> {
   includeDownloads?: boolean;  // 是否包含下载数
   proxy?: ProxyConfig;  // 代理配置
   llmConfig?: LLMConfig;  // LLM配置
+  translateConfig?: BaiduTranslateConfig;  // 翻译配置
 }
+
 
 /**
  * HuggingFace Papers处理流水线
@@ -37,13 +42,15 @@ export class HFPaperPipeline extends BasePipeline {
   private llmProvider?: BaseProvider;
   private paperAnalysisPrompt?: string;
   private useLLMAnalysis: boolean;
+  private pipelineName: string = "hf";
+  private translateProvider?: BaiduTranslateProvider;
 
   constructor(config: HFPaperPipelineConfig = {}) {
     // 设置默认配置
     const defaultConfig: HFPaperPipelineConfig = {
       ...{
-        jsonOutputDir: './data/hf/json',
-        markdownOutputDir: './data/hf/markdown',
+        jsonOutputDir: './data/json',
+        markdownOutputDir: './data/markdown',
         maxItems: 20,
         category: '',  // 空字符串表示所有分类
         timeRange: 'day',  // 默认每日论文
@@ -53,6 +60,7 @@ export class HFPaperPipeline extends BasePipeline {
         includeDownloads: true,
         proxy: undefined,  // 默认不使用代理
         llmConfig: undefined, // 默认不使用LLM
+        translateConfig: undefined, // 默认不使用翻译
       },
       ...config,
     };
@@ -75,6 +83,11 @@ export class HFPaperPipeline extends BasePipeline {
 
     const scraper = new HuggingFacePapersScraper(scraperConfig);
 
+    const pipelineName = "hf";
+
+    defaultConfig.jsonOutputDir = path.join(defaultConfig.jsonOutputDir || './data/json', pipelineName);  
+    defaultConfig.markdownOutputDir = path.join(defaultConfig.markdownOutputDir || './data/markdown', pipelineName);
+
     // 创建导出器
     const exporters = HFPaperPipeline.createExporters(defaultConfig);
 
@@ -82,7 +95,7 @@ export class HFPaperPipeline extends BasePipeline {
     super(scraper, exporters, defaultConfig as PipelineConfig);
 
     this.hfConfig = defaultConfig;
-    
+    this.pipelineName = pipelineName;
     // 初始化类属性
     this.arxivScraper = new ArxivPapersScraper({
       url: 'https://arxiv.org/list/cs/new',
@@ -102,7 +115,10 @@ export class HFPaperPipeline extends BasePipeline {
       this.paperAnalysisPrompt = this.loadPromptTemplate(join(__dirname, 'prompts', 'paper_analysis.txt'));
     }
 
-    
+    if (defaultConfig.translateConfig) {
+      console.log("translateConfig: ", defaultConfig.translateConfig);
+      this.translateProvider = new BaiduTranslateProvider(defaultConfig.translateConfig);
+    }
     // console.log("paperAnalysisPrompt: ", this.paperAnalysisPrompt);
   }
 
@@ -110,7 +126,7 @@ export class HFPaperPipeline extends BasePipeline {
    * 获取流水线名称
    */
   protected getPipelineName(): string {
-    return 'hf';
+    return this.pipelineName;
   }
 
   /**
@@ -138,18 +154,25 @@ export class HFPaperPipeline extends BasePipeline {
   private static createExporters(config: HFPaperPipelineConfig) {
     const exporters = [];
 
-    // 生成默认文件名
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    const categorySuffix = config.category ? `_${config.category}` : '';
-    const timeSuffix = config.timeRange !== 'day' ? `_${config.timeRange}` : '';
-    const defaultFilename = `hf_papers${categorySuffix}${timeSuffix}_${dateStr}`;
+    // 获取当前日期信息
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    // 日期字符串（YYYY-MM-DD格式）
+    const dateStr = `${year}-${month}-${day}`;
+    // 年月字符串（YYYYMM格式）
+    const yearMonthStr = `${year}${month}`;
+    const defaultFilename = `${dateStr}`;
 
     // 只有当jsonOutputDir不为空时才创建JSON导出器
     if (config.jsonOutputDir) {
+      const jsonOutputDir = path.join(config.jsonOutputDir, yearMonthStr);
+      // 创建jsonOutputDir目录
+      fs.mkdirSync(jsonOutputDir, { recursive: true });
       const jsonExporterConfig: ExporterConfig = {
         format: 'json',
-        outputDir: config.jsonOutputDir,
+        outputDir: jsonOutputDir,
         filename: `${defaultFilename}.json`,
       };
       exporters.push(new JSONExporter(jsonExporterConfig));
@@ -157,9 +180,12 @@ export class HFPaperPipeline extends BasePipeline {
 
     // 只有当markdownOutputDir不为空时才创建Markdown导出器
     if (config.markdownOutputDir) {
+      const mdOutputDir = path.join(config.markdownOutputDir, yearMonthStr);
+      // 创建mdOutputDir目录
+      fs.mkdirSync(mdOutputDir, { recursive: true });
       const mdExporterConfig: ExporterConfig = {
         format: 'markdown',
-        outputDir: config.markdownOutputDir,
+        outputDir: mdOutputDir,
         filename: `${defaultFilename}.md`,
       };
       exporters.push(new MarkdownExporter(mdExporterConfig));
@@ -376,6 +402,17 @@ export class HFPaperPipeline extends BasePipeline {
         llmAnalysis = paperLLMResponse.content;
       }
 
+      let translatedSummary = ''
+      if (this.translateProvider && paperSummary) {
+        try {
+          const translatedResult = await this.translateProvider.translate(paperSummary, 'en', 'zh');
+          translatedSummary = translatedResult.translation;
+        } catch (error) {
+          console.error("翻译失败: ", error);
+        }
+        console.log("translatedSummary: ", translatedSummary);
+      }
+
       // 更新item的metadata - 无论是否调用LLM都要更新这些字段
       item.description = paperSummary || undefined;
       item.metadata = {
@@ -388,6 +425,7 @@ export class HFPaperPipeline extends BasePipeline {
         arxivId: paperArxivId,
         published: paperPublished,
         updated: paperUpdated,
+        zh_summary: translatedSummary,
       };
 
       this.log(`✅ 论文处理完成: ${item.title}${this.useLLMAnalysis ? ' (含LLM分析)' : ' (仅抓取数据)'}`);
@@ -439,6 +477,10 @@ export class HFPaperPipeline extends BasePipeline {
       }
       const pipelineEndTime = Date.now();
       result.duration = pipelineEndTime - pipelineStartTime;
+
+      // 更新索引文件
+      await this.updateMarkdownIndex(this.config.markdownOutputDir || './data/markdown', this.pipelineName);
+
       return {
         ...result,
         stats,
