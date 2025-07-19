@@ -94,6 +94,7 @@ export class MarkdownExporter extends BaseExporter {
       if (metadata.pdfUrl) md += `**PDF URL**: ${metadata.pdfUrl}\n\n`;
       if (metadata.arxivUrl) md += `**Arxiv URL**: ${metadata.arxivUrl}\n\n`;
       if (metadata.arxivId) md += `**Arxiv ID**: ${metadata.arxivId}\n\n`;
+      if (metadata.coolPaperUrl) md += `**CoolPaper URL**: ${metadata.coolPaperUrl}\n\n`;
       if (metadata.published) md += `**Published**: ${metadata.published}\n\n`;
       if (metadata.updated) md += `**Updated**: ${metadata.updated}\n\n`;
       md += `---\n\n`;
@@ -123,6 +124,7 @@ export class MarkdownExporter extends BaseExporter {
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;
       if (metadata.pdfUrl) md += `**PDF URL**: ${metadata.pdfUrl}\n\n`;
       if (metadata.arxivUrl) md += `**Arxiv URL**: ${metadata.arxivUrl}\n\n`;
+      if (metadata.coolPaperUrl) md += `**CoolPaper URL**: ${metadata.coolPaperUrl}\n\n`;
       if (metadata.published) md += `**Published**: ${metadata.published}\n\n`;
       if (metadata.updated) md += `**Updated**: ${metadata.updated}\n\n`;
       md += `---\n\n`;

@@ -432,6 +432,7 @@ export class HFPaperPipeline extends BasePipeline {
         pdfUrl: paperPdfUrl,
         arxivUrl: paperArxivUrl,
         arxivId: paperArxivId,
+        coolPaperUrl: `https://papers.cool/arxiv/${paperArxivId}`,
         published: paperPublished,
         updated: paperUpdated,
         zh_summary: zh_summary,

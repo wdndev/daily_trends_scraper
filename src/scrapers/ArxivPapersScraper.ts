@@ -488,6 +488,7 @@ export class ArxivPapersScraper extends BaseScraper {
         const id = this.extractArxivIdFromXml(entryXml);
         const published = this.extractXmlValue(entryXml, 'published');
         const categories = this.extractCategories(entryXml);
+        const coolPaperUrl = `https://papers.cool/arxiv/${id}`;
         
         if (title && id) {
           items.push({
@@ -504,6 +505,7 @@ export class ArxivPapersScraper extends BaseScraper {
               published,
               pdfUrl: `https://arxiv.org/pdf/${id}.pdf`,
               abstractUrl: `https://arxiv.org/abs/${id}`,
+              coolPaperUrl: coolPaperUrl,
               rank: rank,
             },
           });

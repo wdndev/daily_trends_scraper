@@ -43,25 +43,16 @@ function loadPromptTemplate(templatePath: string): string {
 // 每次运行时重新加载环境变量
 reloadEnvVars();
 
-// const llmConfig: LLMConfig = {
-//   provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
-//   apiKey: process.env.API_KEY || '',
-//   baseUrl: process.env.BASE_URL || 'https://api.openai.com/v1',
-//   modelName: process.env.MODEL_NAME || 'gpt-3.5-turbo',
-//   maxTokens: 4000,
-//   // temperature: 0.7,
-//   stream: false,
-// };
-
 const llmConfig: LLMConfig = {
-  provider: 'openai',
-  apiKey: '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',
-  baseUrl: 'https://openrouter.ai/api/v1',
-  modelName: 'deepseek/deepseek-chat-v3-0324:free',
+  provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
+  apiKey: process.env.API_KEY || '',
+  baseUrl: process.env.BASE_URL || 'https://api.openai.com/v1',
+  modelName: process.env.MODEL_NAME || 'gpt-3.5-turbo',
   maxTokens: 4000,
   // temperature: 0.7,
   stream: false,
 };
+
 
 if (require.main === module) {
   (async () => {
