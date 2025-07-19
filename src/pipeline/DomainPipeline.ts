@@ -3,7 +3,8 @@ import { ArxivPapersScraper } from '../scrapers/ArxivPapersScraper';
 import { JSONExporter } from '../exporters/JSONExporter';
 import { MarkdownExporter } from '../exporters/MarkdownExporter';
 import { ScraperConfig, ExporterConfig } from '../types';
-import { BaiduTranslateProvider, BaiduTranslateConfig } from '../providers/BaiduTranslateProvider';
+import { BingTranslateProvider } from '../providers/BingTranslateProvider';
+import { PaperAnalysisScraper } from '../providers/PaperAnalysisScraper';
 import { TrendItem } from '../types';
 import path from 'path';
 import fs from 'fs';
@@ -19,7 +20,6 @@ export interface DomainPipelineConfig extends Partial<PipelineConfig> {
     startDate?: string;
     endDate?: string;
   };
-  translateConfig?: BaiduTranslateConfig;
 }
 
 /**
@@ -29,7 +29,8 @@ export interface DomainPipelineConfig extends Partial<PipelineConfig> {
 export class DomainPipeline extends BasePipeline {
   private domainConfig: DomainPipelineConfig;
   private pipelineName: string;
-  private translateProvider?: BaiduTranslateProvider;
+  private translateProvider?: BingTranslateProvider;
+  private paperAnalysisScraper?: PaperAnalysisScraper;
   constructor(config: DomainPipelineConfig = {}) {
     // 设置默认配置
     const defaultConfig: DomainPipelineConfig = {
@@ -42,7 +43,6 @@ export class DomainPipeline extends BasePipeline {
         timeout: 30000,
         maxRetries: 3,
         enableLogging: true,
-        translateConfig: undefined,
       },
       ...config,
     };
@@ -72,9 +72,10 @@ export class DomainPipeline extends BasePipeline {
     super(scraper, exporters, defaultConfig as PipelineConfig);
     this.domainConfig = defaultConfig;
     this.pipelineName = pipelineName;
-    if (defaultConfig.translateConfig) {
-      this.translateProvider = new BaiduTranslateProvider(defaultConfig.translateConfig);
-    }
+    
+    this.translateProvider = new BingTranslateProvider();
+
+    this.paperAnalysisScraper = new PaperAnalysisScraper();
   }
 
   /**
@@ -153,24 +154,39 @@ export class DomainPipeline extends BasePipeline {
             }
             // items的metadata添加domain
             // 添加翻译功能
-            items.forEach(async item => {
-                let zh_summary = ''
+              for (const item of items) {
+                let zh_summary = '';
+                let llm_analysis = '';
                 if (this.translateProvider && item.description) {
                     try {
-                        const translatedResult = await this.translateProvider.translate(item.description, 'en', 'zh');
+                        const translatedResult = await this.translateProvider.translate(item.description, 'en', 'zh-Hans');
                         zh_summary = translatedResult.translation;
                     } catch (error) {
                         console.error("翻译失败: ", error);
+                        zh_summary = `Translation Failed: ${error}`;
                     }
+                }
+                try {
+                  let arxivId = item.metadata?.arxivId || '';
+                  console.log("arxivId: ", arxivId);
+                  if (this.paperAnalysisScraper && arxivId) {
+                    console.log("开始分析论文: ", arxivId);
+                    llm_analysis = await this.paperAnalysisScraper.fetchInterpretation(arxivId);
+                    console.log("论文分析完成: ", arxivId);
+                  }
+                } catch (error) {
+                    console.error("获取论文分析失败: ", error);
+                    llm_analysis = `LLM Analysis Failed: ${error}`;
                 }
                 item.metadata = {
                     ...item.metadata,
                     domain: `${domain}`,
-                    zh_summary: zh_summary
+                    zh_summary: zh_summary,
+                    llm_analysis: llm_analysis
                 };
                 item.source = `ArXiv Domain`;
-            });
-            this.log(`成功抓取 ${items.length} 篇论文`);
+            }
+            this.log(`成功抓取 ${items.length} 篇 ${domain} 论文`);
             domainItems.push(...items);
         }   
 
@@ -189,6 +205,10 @@ export class DomainPipeline extends BasePipeline {
         source: `ArXiv ${this.domainConfig.domain}`,
         timestamp: new Date(),
       };
+    } finally {
+      if (this.paperAnalysisScraper) {
+        await this.paperAnalysisScraper.close();
+      }
     }
   }
 

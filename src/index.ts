@@ -80,22 +80,14 @@ function createConfigs(
       includeCitations: true,
       includeDownloads: true,
       proxy: proxyConfig,
-      llmConfig: llmAnalysisConfig,
-      translateConfig: {
-        appid: "20250706002398792",
-        appkey: "YwQSdpuzEHt3vKqOgsww",
-      },
+      llmConfig: llmAnalysisConfig
     },
     domain: {
-      domain: ['LLM', 'Agent', 'NLP', 'AI'],
+      domain: ['LLM', 'Agent', 'AI', 'Evaluation'],
       maxResults: 10,
       includeFullText: false,
       jsonOutputDir: jsonOutputDir,
-      markdownOutputDir: markdownOutputDir,
-      translateConfig: {
-        appid: "20250706002398792",
-        appkey: "YwQSdpuzEHt3vKqOgsww",
-      },
+      markdownOutputDir: markdownOutputDir
     },
   };
 }
@@ -316,6 +308,7 @@ async function executeAllPipelinesParallel(
   };
 }
 
+// npx puppeteer browsers install chrome
 if (require.main === module) {
   main().catch(console.error);
 }

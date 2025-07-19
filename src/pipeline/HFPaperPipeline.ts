@@ -8,7 +8,8 @@ import { ArxivPapersScraper } from '../scrapers/ArxivPapersScraper';
 import { QianfanProvider } from '../providers/QianfanProvider';
 import { OpenAIProvider } from '../providers/OpenAIProvider';
 import { BaseProvider } from '../providers/BaseProvider';
-import { BaiduTranslateProvider, BaiduTranslateConfig } from '../providers/BaiduTranslateProvider';
+import { BingTranslateProvider } from '../providers/BingTranslateProvider';
+import { PaperAnalysisScraper } from '../providers/PaperAnalysisScraper';
 import path from 'path';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -28,7 +29,6 @@ export interface HFPaperPipelineConfig extends Partial<PipelineConfig> {
   includeDownloads?: boolean;  // 是否包含下载数
   proxy?: ProxyConfig;  // 代理配置
   llmConfig?: LLMConfig;  // LLM配置
-  translateConfig?: BaiduTranslateConfig;  // 翻译配置
 }
 
 
@@ -43,7 +43,8 @@ export class HFPaperPipeline extends BasePipeline {
   private paperAnalysisPrompt?: string;
   private useLLMAnalysis: boolean;
   private pipelineName: string = "hf";
-  private translateProvider?: BaiduTranslateProvider;
+  private translateProvider?: BingTranslateProvider;
+  private paperAnalysisScraper?: PaperAnalysisScraper;
 
   constructor(config: HFPaperPipelineConfig = {}) {
     // 设置默认配置
@@ -60,7 +61,6 @@ export class HFPaperPipeline extends BasePipeline {
         includeDownloads: true,
         proxy: undefined,  // 默认不使用代理
         llmConfig: undefined, // 默认不使用LLM
-        translateConfig: undefined, // 默认不使用翻译
       },
       ...config,
     };
@@ -115,11 +115,10 @@ export class HFPaperPipeline extends BasePipeline {
       this.paperAnalysisPrompt = this.loadPromptTemplate(join(__dirname, 'prompts', 'paper_analysis.txt'));
     }
 
-    if (defaultConfig.translateConfig) {
-      console.log("translateConfig: ", defaultConfig.translateConfig);
-      this.translateProvider = new BaiduTranslateProvider(defaultConfig.translateConfig);
-    }
+    this.translateProvider = new BingTranslateProvider();
+
     // console.log("paperAnalysisPrompt: ", this.paperAnalysisPrompt);
+    this.paperAnalysisScraper = new PaperAnalysisScraper();
   }
 
   /**
@@ -402,15 +401,25 @@ export class HFPaperPipeline extends BasePipeline {
         llmAnalysis = paperLLMResponse.content;
       }
 
-      let translatedSummary = ''
+      let zh_summary = ''
       if (this.translateProvider && paperSummary) {
         try {
-          const translatedResult = await this.translateProvider.translate(paperSummary, 'en', 'zh');
-          translatedSummary = translatedResult.translation;
+          const translatedResult = await this.translateProvider.translate(paperSummary, 'en', 'zh-Hans');
+          zh_summary = translatedResult.translation;
         } catch (error) {
           console.error("翻译失败: ", error);
+          zh_summary = `Translation Failed: ${error}`;
         }
-        console.log("translatedSummary: ", translatedSummary);
+        console.log("translatedSummary: ", zh_summary);
+      }
+      let llm_analysis = '';
+      if (this.paperAnalysisScraper && paperArxivId) {
+        try {
+          llm_analysis = await this.paperAnalysisScraper.fetchInterpretation(paperArxivId);
+        } catch (error) {
+          console.error("获取论文分析失败: ", error);
+          llm_analysis = `LLM Analysis Failed: ${error}`;
+        }
       }
 
       // 更新item的metadata - 无论是否调用LLM都要更新这些字段
@@ -425,7 +434,8 @@ export class HFPaperPipeline extends BasePipeline {
         arxivId: paperArxivId,
         published: paperPublished,
         updated: paperUpdated,
-        zh_summary: translatedSummary,
+        zh_summary: zh_summary,
+        llm_analysis: llm_analysis,
       };
 
       this.log(`✅ 论文处理完成: ${item.title}${this.useLLMAnalysis ? ' (含LLM分析)' : ' (仅抓取数据)'}`);
@@ -433,6 +443,10 @@ export class HFPaperPipeline extends BasePipeline {
     } catch (error) {
       this.log(`❌ 论文处理失败: ${item.title} - ${error}`);
       return { item, success: false };
+    } finally {
+      if (this.paperAnalysisScraper) {
+        await this.paperAnalysisScraper.close();
+      }
     }
   }
 

@@ -88,8 +88,8 @@ export class MarkdownExporter extends BaseExporter {
       md += `### ${i+1}. [${paper.title}](${paper.url || '#'})\n\n`;
       if (paper.description) md += `${paper.description}\n\n`;
       if (metadata.zh_summary) md += `{% hideToggle 中文摘要 %} \n\n${metadata.zh_summary}\n\n{% endhideToggle %}\n\n`;
+      if (metadata.llm_analysis) md += `{% hideToggle LLM Analysis %} \n\n${metadata.llm_analysis}\n\n{% endhideToggle %}\n\n`;
       if (metadata.authors) md += `**Authors**: ${metadata.authors}\n\n`;
-      if (metadata.llmAnalysis) md += `**LLM Analysis**: ${metadata.llmAnalysis}\n\n`;
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;
       if (metadata.pdfUrl) md += `**PDF URL**: ${metadata.pdfUrl}\n\n`;
       if (metadata.arxivUrl) md += `**Arxiv URL**: ${metadata.arxivUrl}\n\n`;
@@ -118,8 +118,8 @@ export class MarkdownExporter extends BaseExporter {
       md += `### ${rank}. [${paper.title}](${paper.url || '#'})\n`;
       if (paper.description) md += `${paper.description}\n\n`;
       if (metadata.zh_summary) md += `{% hideToggle 中文摘要 %} \n\n${metadata.zh_summary}\n\n{% endhideToggle %}\n\n`;
+      if (metadata.llm_analysis) md += `{% hideToggle LLM Analysis %} \n\n${metadata.llm_analysis}\n\n{% endhideToggle %}\n\n`;
       if (metadata.authors) md += `**Authors**: ${metadata.authors}\n\n`;
-      if (metadata.llmAnalysis) md += `**LLM Analysis**: ${metadata.llmAnalysis}\n\n`;
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;
       if (metadata.pdfUrl) md += `**PDF URL**: ${metadata.pdfUrl}\n\n`;
       if (metadata.arxivUrl) md += `**Arxiv URL**: ${metadata.arxivUrl}\n\n`;

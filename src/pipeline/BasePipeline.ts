@@ -187,7 +187,14 @@ export abstract class BasePipeline {
         .map(dirent => dirent.name)
         .sort((a, b) => b.localeCompare(a)); // 倒序排列（最新月份在前）
 
-      let indexContent = `---\ntitle: ${pipelineName} \ndate: 2019-06-18\nauthor: wdndev\ntags: [${pipelineName}]\ncategories: \n- ${pipelineName}\nhidden: true\ncomments: false\n---\n\n`;
+      const titleMap = {
+        domain: "Arxiv Domain Papers",
+        weibo: "Weibo Hot",
+        github: "GitHub Trending",
+        hf: "HuggingFace Papers"
+      };
+      const title = titleMap[pipelineName as keyof typeof titleMap] || pipelineName;
+      let indexContent = `---\ntitle: ${title} \ndate: 2019-06-18\nauthor: wdndev\ntags: [${pipelineName}]\ncategories: \n- ${pipelineName}\nhidden: true\ncomments: false\n---\n\n`;
 
       // 遍历每个月份文件夹
       for (const monthFolder of validMonthFolders) {

@@ -1,9 +1,10 @@
 import { BaiduTranslateProvider } from './providers/BaiduTranslateProvider';
+import { BingTranslateProvider } from './providers/BingTranslateProvider';
 
 /**
  * 百度翻译提供者使用示例
  */
-async function main() {
+async function main_old() {
   // 配置翻译提供者
   const translator = new BaiduTranslateProvider(
     {
@@ -45,6 +46,27 @@ async function main() {
     console.error('翻译过程中出现错误:', error);
   }
 }
+
+async function main() {
+
+  try {
+    // 示例1: 单文本翻译
+    console.log('=== 单文本翻译示例 ===');
+    const text = "Agentic search such as Deep Research systems-where agents autonomously browse the web, synthesize information, and return comprehensive citation-backed answers-represents a major shift in how users interact with web-scale information.";
+    
+    const bingProvider = new BingTranslateProvider();
+    const result = await bingProvider.translate(text);  
+    console.log('原文:', result.text);
+    console.log('译文:', result.translation);
+
+
+ 
+
+  } catch (error) {
+    console.error('翻译过程中出现错误:', error);
+  }
+}
+
 
 // 如果直接运行此文件，则执行示例
 if (require.main === module) {
