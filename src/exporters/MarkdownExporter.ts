@@ -40,6 +40,15 @@ export class MarkdownExporter extends BaseExporter {
 
     return markdown;
   }
+  
+  private processLLMAnalysisQAText(input: string): string {
+    const regex = /(\*\*Q\*\*:[\s\S]*?)(?=\n\n\*\*A\*\*:|$)/g;
+    return input.replace(regex, (match) => {
+        // 移除Q前后的**标记
+        const cleanedMatch = match.replace(/^\*\*Q\*\*:/, 'Q:');
+        return `<p style="background-color: rgba(135, 206, 235, 0.3);border-radius: 0.4rem;padding: 10px;margin: 10px 0;margin-left: -10px;font-weight: bold;">\n${cleanedMatch.trim()}\n</p>`;
+    });
+  }
 
   private generateGitHubMarkdown(items: TrendItem[], dateStr: string): string {
     let md = `---\ntitle: GitHub Trending ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [GitHub, Trending]\ncategories: \n- GitHub\nhidden: true\ncomments: false\n---\n\n`;
@@ -88,7 +97,7 @@ export class MarkdownExporter extends BaseExporter {
       md += `### ${i+1}. [${paper.title}](${paper.url || '#'})\n\n`;
       if (paper.description) md += `${paper.description}\n\n`;
       if (metadata.zh_summary) md += `{% hideToggle 中文摘要 %} \n\n${metadata.zh_summary}\n\n{% endhideToggle %}\n\n`;
-      if (metadata.llm_analysis) md += `{% hideToggle LLM Analysis %} \n\n${metadata.llm_analysis}\n\n{% endhideToggle %}\n\n`;
+      if (metadata.llm_analysis) md += `{% hideToggle LLM Analysis %} \n\n${this.processLLMAnalysisQAText(metadata.llm_analysis)}\n\n{% endhideToggle %}\n\n`;
       if (metadata.authors) md += `**Authors**: ${metadata.authors}\n\n`;
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;
       if (metadata.pdfUrl) md += `**PDF URL**: ${metadata.pdfUrl}\n\n`;
@@ -119,7 +128,7 @@ export class MarkdownExporter extends BaseExporter {
       md += `### ${rank}. [${paper.title}](${paper.url || '#'})\n`;
       if (paper.description) md += `${paper.description}\n\n`;
       if (metadata.zh_summary) md += `{% hideToggle 中文摘要 %} \n\n${metadata.zh_summary}\n\n{% endhideToggle %}\n\n`;
-      if (metadata.llm_analysis) md += `{% hideToggle LLM Analysis %} \n\n${metadata.llm_analysis}\n\n{% endhideToggle %}\n\n`;
+      if (metadata.llm_analysis) md += `{% hideToggle LLM Analysis %} \n\n${this.processLLMAnalysisQAText(metadata.llm_analysis)}\n\n{% endhideToggle %}\n\n`;
       if (metadata.authors) md += `**Authors**: ${metadata.authors}\n\n`;
       if (metadata.categories) md += `**Categories**: ${metadata.categories}\n\n`;
       if (metadata.pdfUrl) md += `**PDF URL**: ${metadata.pdfUrl}\n\n`;

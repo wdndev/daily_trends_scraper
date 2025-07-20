@@ -13,7 +13,16 @@ import fs from 'fs';
  * 领域流水线配置接口
  */
 export interface DomainPipelineConfig extends Partial<PipelineConfig> {
-  domain?: ('NLP' | 'LLM' | 'Agent' | 'AI' | 'CV' | 'Evaluation' | 'Multimodal' | 'Robotics')[];
+  domain?: (
+    | 'NLP'
+    | 'LLM'
+    | 'Agent'
+    | 'AI'
+    | 'CV'
+    | 'Evaluation'
+    | 'Multimodal'
+    | 'Robotics'
+  )[];
   maxResults?: number;
   includeFullText?: boolean;
   filterByDate?: {
@@ -60,10 +69,16 @@ export class DomainPipeline extends BasePipeline {
 
     const scraper = new ArxivPapersScraper(scraperConfig);
 
-    const pipelineName = "domain";
+    const pipelineName = 'domain';
 
-    defaultConfig.jsonOutputDir = path.join(defaultConfig.jsonOutputDir || './data/json', pipelineName);
-    defaultConfig.markdownOutputDir = path.join(defaultConfig.markdownOutputDir || './data/markdown', pipelineName);
+    defaultConfig.jsonOutputDir = path.join(
+      defaultConfig.jsonOutputDir || './data/json',
+      pipelineName
+    );
+    defaultConfig.markdownOutputDir = path.join(
+      defaultConfig.markdownOutputDir || './data/markdown',
+      pipelineName
+    );
 
     // 创建导出器
     const exporters = DomainPipeline.createExporters(defaultConfig);
@@ -72,7 +87,7 @@ export class DomainPipeline extends BasePipeline {
     super(scraper, exporters, defaultConfig as PipelineConfig);
     this.domainConfig = defaultConfig;
     this.pipelineName = pipelineName;
-    
+
     this.translateProvider = new BingTranslateProvider();
 
     this.paperAnalysisScraper = new PaperAnalysisScraper();
@@ -136,63 +151,73 @@ export class DomainPipeline extends BasePipeline {
    */
   protected async scrapeData(): Promise<any> {
     this.log(`开始抓取领域的论文...`);
-    
+
     try {
-        let domainItems: TrendItem[] = [];
-        // 遍历domain列表抓取论文
-        const domains = this.domainConfig.domain || ['LLM'];
-        for (const domain of domains) {
-            let items = await (this.scraper as ArxivPapersScraper).getPapersByDomain(domain);
-            if (this.domainConfig.filterByDate) {
-                items = this.filterByDateRange(items);
+      let domainItems: TrendItem[] = [];
+      // 遍历domain列表抓取论文
+      const domains = this.domainConfig.domain || ['LLM'];
+      for (const domain of domains) {
+        let items = await (
+          this.scraper as ArxivPapersScraper
+        ).getPapersByDomain(domain);
+        if (this.domainConfig.filterByDate) {
+          items = this.filterByDateRange(items);
+        }
+        if (
+          this.domainConfig.maxResults &&
+          items.length > this.domainConfig.maxResults
+        ) {
+          items = items.slice(0, this.domainConfig.maxResults);
+        }
+        if (this.domainConfig.includeFullText) {
+          items = await this.enrichWithFullText(items);
+        }
+        // items的metadata添加domain
+        // 添加翻译功能
+        for (const item of items) {
+          let zh_summary = '';
+          let llm_analysis = '';
+          if (this.translateProvider && item.description) {
+            try {
+              const translatedResult = await this.translateProvider.translate(
+                item.description,
+                'en',
+                'zh-Hans'
+              );
+              zh_summary = translatedResult.translation;
+            } catch (error) {
+              console.error('翻译失败: ', error);
+              zh_summary = `Translation Failed: ${error}`;
             }
-            if (this.domainConfig.maxResults && items.length > this.domainConfig.maxResults) {
-                items = items.slice(0, this.domainConfig.maxResults);
+          }
+          try {
+            let arxivId = item.metadata?.arxivId || '';
+            console.log('arxivId: ', arxivId);
+            if (this.paperAnalysisScraper && arxivId) {
+              console.log('开始分析论文: ', arxivId);
+              llm_analysis =
+                await this.paperAnalysisScraper.fetchInterpretation(arxivId);
+              console.log('论文分析完成: ', arxivId);
             }
-            if (this.domainConfig.includeFullText) {
-                items = await this.enrichWithFullText(items);
-            }
-            // items的metadata添加domain
-            // 添加翻译功能
-              for (const item of items) {
-                let zh_summary = '';
-                let llm_analysis = '';
-                if (this.translateProvider && item.description) {
-                    try {
-                        const translatedResult = await this.translateProvider.translate(item.description, 'en', 'zh-Hans');
-                        zh_summary = translatedResult.translation;
-                    } catch (error) {
-                        console.error("翻译失败: ", error);
-                        zh_summary = `Translation Failed: ${error}`;
-                    }
-                }
-                try {
-                  let arxivId = item.metadata?.arxivId || '';
-                  console.log("arxivId: ", arxivId);
-                  if (this.paperAnalysisScraper && arxivId) {
-                    console.log("开始分析论文: ", arxivId);
-                    llm_analysis = await this.paperAnalysisScraper.fetchInterpretation(arxivId);
-                    console.log("论文分析完成: ", arxivId);
-                  }
-                } catch (error) {
-                    console.error("获取论文分析失败: ", error);
-                    llm_analysis = `LLM Analysis Failed: ${error}`;
-                }
-                item.metadata = {
-                    ...item.metadata,
-                    domain: `${domain}`,
-                    zh_summary: zh_summary,
-                    llm_analysis: llm_analysis
-                };
-                item.source = `ArXiv Domain`;
-            }
-            this.log(`成功抓取 ${items.length} 篇 ${domain} 论文`);
-            domainItems.push(...items);
-        }   
+          } catch (error) {
+            console.error('获取论文分析失败: ', error);
+            llm_analysis = `LLM Analysis Failed: ${error}`;
+          }
+          item.metadata = {
+            ...item.metadata,
+            domain: `${domain}`,
+            zh_summary: zh_summary,
+            llm_analysis: llm_analysis,
+          };
+          item.source = `ArXiv Domain`;
+        }
+        this.log(`成功抓取 ${items.length} 篇 ${domain} 论文`);
+        domainItems.push(...items);
+      }
 
       return {
         success: true,
-        data: domainItems,    
+        data: domainItems,
         source: `ArXiv ${this.domainConfig.domain}`,
         timestamp: new Date(),
       };
@@ -229,10 +254,15 @@ export class DomainPipeline extends BasePipeline {
     const result = await this.execute();
     if (result.success && result.scrapedData) {
       const stats = this.getDomainStats(result.scrapedData);
-      this.log(`领域论文统计: 总计${stats.totalItems}篇，含全文${stats.withFullText}篇`);
+      this.log(
+        `领域论文统计: 总计${stats.totalItems}篇，含全文${stats.withFullText}篇`
+      );
 
       // 更新索引文件
-      await this.updateMarkdownIndex(this.config.markdownOutputDir || './data/markdown', this.pipelineName);
+      await this.updateMarkdownIndex(
+        this.config.markdownOutputDir || './data/markdown',
+        this.pipelineName
+      );
 
       return {
         ...result,
@@ -247,20 +277,20 @@ export class DomainPipeline extends BasePipeline {
    */
   private filterByDateRange(items: TrendItem[]): TrendItem[] {
     const { startDate, endDate } = this.domainConfig.filterByDate!;
-    
+
     return items.filter(item => {
       const itemDate = item.timestamp;
-      
+
       if (startDate) {
         const start = new Date(startDate);
         if (itemDate < start) return false;
       }
-      
+
       if (endDate) {
         const end = new Date(endDate);
         if (itemDate > end) return false;
       }
-      
+
       return true;
     });
   }
@@ -270,16 +300,18 @@ export class DomainPipeline extends BasePipeline {
    */
   private async enrichWithFullText(items: TrendItem[]): Promise<TrendItem[]> {
     this.log('开始获取论文全文内容...');
-    
+
     const enrichedItems: TrendItem[] = [];
-    
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       this.log(`获取全文 ${i + 1}/${items.length}: ${item.title}`);
-      
+
       try {
         if (item.url) {
-          const fullText = await (this.scraper as ArxivPapersScraper).getPaperFullText(item.url);
+          const fullText = await (
+            this.scraper as ArxivPapersScraper
+          ).getPaperFullText(item.url);
           if (fullText) {
             // 将全文内容添加到元数据中
             item.metadata = {
@@ -300,17 +332,18 @@ export class DomainPipeline extends BasePipeline {
         item.metadata = {
           ...item.metadata,
           hasFullText: false,
-          fullTextError: error instanceof Error ? error.message : 'Unknown error',
+          fullTextError:
+            error instanceof Error ? error.message : 'Unknown error',
         };
         enrichedItems.push(item);
       }
-      
+
       // 添加延迟避免请求过于频繁
       if (i < items.length - 1) {
         await this.delay(1000);
       }
     }
-    
+
     this.log('全文内容获取完成');
     return enrichedItems;
   }
@@ -334,13 +367,13 @@ export class DomainPipeline extends BasePipeline {
   public async getPaperDetails(arxivUrl: string): Promise<any> {
     try {
       this.log(`获取论文详细信息: ${arxivUrl}`);
-      const paperInfo = await (this.scraper as ArxivPapersScraper).getFullPaperInfo(arxivUrl);
+      const paperInfo = await (
+        this.scraper as ArxivPapersScraper
+      ).getFullPaperInfo(arxivUrl);
       return paperInfo;
     } catch (error) {
       this.logError('获取论文详细信息失败', error);
       throw error;
     }
   }
-
-
 }

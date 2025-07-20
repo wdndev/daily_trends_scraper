@@ -334,7 +334,7 @@ export class ArxivPapersScraper extends BaseScraper {
   /**
    * 获取论文的完整信息（包括 PDF 和摘要链接）
    */
-  public async getFullPaperInfo(arxivUrl: string): Promise<ArxivFullPaperInfo> {
+  public async getFullPaperInfo(arxivUrl: string, is_full_text: boolean=false): Promise<ArxivFullPaperInfo> {
     try {
       const arxivId = this.extractArxivId(arxivUrl);
       if (!arxivId) {
@@ -342,10 +342,17 @@ export class ArxivPapersScraper extends BaseScraper {
         return this.createEmptyPaperInfo(arxivUrl, '无法从URL提取arXiv ID');
       }
 
-      const [paperInfo, paperFullText] = await Promise.all([
-        this.getPaperByUrl(arxivUrl),
-        this.getPaperFullText(arxivUrl)
-      ]);
+      let paperInfo: TrendItem | null = null;
+      let paperFullText: string | null = null;
+
+      if (is_full_text) {
+        [paperInfo, paperFullText] = await Promise.all([
+          this.getPaperByUrl(arxivUrl),
+          this.getPaperFullText(arxivUrl)
+        ]);
+      } else {
+        paperInfo = await this.getPaperByUrl(arxivUrl);
+      }
 
       const pdfUrl = this.getPdfUrl(arxivId);
       const abstractUrl = this.getAbstractUrl(arxivId);

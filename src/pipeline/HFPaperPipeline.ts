@@ -102,7 +102,8 @@ export class HFPaperPipeline extends BasePipeline {
       timeout: 30000,
     });
     
-    this.useLLMAnalysis = defaultConfig.llmConfig !== undefined;
+    // this.useLLMAnalysis = defaultConfig.llmConfig !== undefined;
+    this.useLLMAnalysis = false;
 
     if (this.useLLMAnalysis && defaultConfig.llmConfig) {
       const llmConfig = defaultConfig.llmConfig;
@@ -361,7 +362,7 @@ export class HFPaperPipeline extends BasePipeline {
       }
 
       const arxivUrl = item.url.replace('https://huggingface.co/papers/', 'https://arxiv.org/abs/');
-      const paperInfo = await this.arxivScraper.getFullPaperInfo(arxivUrl);
+      const paperInfo = await this.arxivScraper.getFullPaperInfo(arxivUrl, this.useLLMAnalysis);
       
       if (!paperInfo.success) {
         return { item, success: false };
@@ -469,7 +470,7 @@ export class HFPaperPipeline extends BasePipeline {
       const processedResults = await this.processWithRateLimit(
         result.scrapedData,
         (item, index) => this.processPaper(item),
-        this.useLLMAnalysis ? 2 : 10 // LLM分析时每秒2次，仅抓取数据时每秒10次
+        this.useLLMAnalysis ? 2 : 100 // LLM分析时每秒2次，仅抓取数据时每秒10次
       );
       
       const llmEndTime = Date.now();
