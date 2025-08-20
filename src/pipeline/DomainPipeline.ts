@@ -376,4 +376,43 @@ export class DomainPipeline extends BasePipeline {
       throw error;
     }
   }
+
+  public async scrapePaperAndClickLLMGenerate(): Promise<any> {
+    this.log(`开始抓取领域的论文并点击LLM生成...`);
+    try {
+      const domains = this.domainConfig.domain || ['LLM'];
+      for (const domain of domains) {
+        let items = await (
+          this.scraper as ArxivPapersScraper
+        ).getPapersByDomain(domain);
+        if (this.domainConfig.filterByDate) {
+          items = this.filterByDateRange(items);
+        }
+        if (
+          this.domainConfig.maxResults &&
+          items.length > this.domainConfig.maxResults
+        ) {
+          items = items.slice(0, this.domainConfig.maxResults);
+        }
+        for (const item of items) {
+          let arxivId = item.metadata?.arxivId || '';
+          console.log('arxivId: ', arxivId);
+          if (this.paperAnalysisScraper && arxivId) {
+            console.log('开始点击LLM生成: ', arxivId);
+            await this.paperAnalysisScraper.clickLLMGenerate(arxivId);
+            console.log('点击LLM生成完成: ', arxivId);
+          }
+        }
+      }
+    } catch (error) {
+      this.logError('点击LLM生成失败', error);
+      throw error;
+    } finally {
+      // 确保关闭浏览器实例
+      if (this.paperAnalysisScraper) {
+        await this.paperAnalysisScraper.close();
+      }
+    }
+    this.log(`点击LLM生成完成`);
+  }
 }

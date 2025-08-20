@@ -20,53 +20,6 @@ export class PaperAnalysisScraper {
   }
 
   // 主方法：抓取解读并转为 Markdown
-  // public async fetchInterpretation(paperId: string): Promise<string> {
-  //   const url = `https://papers.cool/arxiv/${paperId}`;
-  //   const browser = await this.getBrowser();
-  //   const page = await browser.newPage();
-
-  //   try {
-  //     await page.goto(url, { waitUntil: 'networkidle2' });
-
-  //     console.log("paperId: ", paperId);
-
-
-  //     const basePaperId = paperId.replace(/\./g, '\\.').replace(/v\d+$/, '');
-  //     // 去掉末尾的 v1/v2
-  //     // const basePaperId = paperId
-  //     console.log("basePaperId: ", basePaperId);
-
-  //     const kimiButtonSelector = `#kimi-${basePaperId}`;
-  //     console.log("kimiButtonSelector: ", kimiButtonSelector);
-  //     await page.waitForSelector(kimiButtonSelector, { timeout: 20000 });
-  //     await page.click(kimiButtonSelector);
-
-  //     const kimiContentSelector = `#kimi-container-${basePaperId}`;
-  //     console.log("kimiContentSelector: ", kimiContentSelector);
-
-  //     await page.waitForFunction(
-  //       selector => {
-  //         const el = document.querySelector(selector as string);
-  //         return el && el.textContent && el.textContent.trim().length > 5000;
-  //       },
-  //       { timeout: 60000 },
-  //       kimiContentSelector
-  //     );
-
-  //     const kimiContentHTML = await page.$eval(
-  //       kimiContentSelector,
-  //       el => el.innerHTML
-  //     );
-
-  //     const kimiContentMarkdown = this.turndownService.turndown(kimiContentHTML);
-  //     return kimiContentMarkdown;
-  //   } catch (error) {
-  //     throw new Error(`抓取失败: ${error}`);
-  //   } finally {
-  //     await page.close();
-  //   }
-  // }
-
   public async fetchInterpretation(paperId: string): Promise<string> {
     const url = `https://papers.cool/arxiv/${paperId}`;
     const browser = await this.getBrowser();
@@ -100,9 +53,42 @@ export class PaperAnalysisScraper {
       // turndown 转换后，将所有标题行的 # 前缀去掉，变成普通文本
       const kimiContentMarkdown = this.turndownService.turndown(kimiContentHTML);
       const plainText = kimiContentMarkdown.replace(/^#+\s?/gm, '');
-      return plainText;
+      
+      // 处理数学公式，避免 Nunjucks 解析冲突
+      const processedText = this.processMathFormulas(plainText);
+      return processedText;
     } catch (error: any) {
       throw new Error(`抓取失败: ${error.message || error}`);
+    } finally {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    }
+  }
+
+  public async clickLLMGenerate(paperId: string): Promise<string> {
+    const url = `https://papers.cool/arxiv/${paperId}`;
+    const browser = await this.getBrowser();
+    let page: Page | null = null;
+  
+    const basePaperId = paperId.replace(/\./g, '\\.').replace(/v\d+$/, '');
+    const kimiButtonSelector = `#kimi-${basePaperId}`;
+  
+    try {
+      page = await browser.newPage();
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 3000 });
+  
+      await page.waitForSelector(kimiButtonSelector, { timeout: 1000 });
+      await page.click(kimiButtonSelector);
+  
+      // 点击后等待一小段时间确保点击生效
+      await new Promise(resolve => setTimeout(resolve, 500));
+  
+      return 'success';
+    } catch (error: any) {
+      // throw new Error(`点击失败: ${error.message || error}`);
+      console.error(`点击失败: ${error.message || error}`);
+      return 'failed';
     } finally {
       if (page && !page.isClosed()) {
         await page.close();
@@ -162,6 +148,47 @@ export class PaperAnalysisScraper {
       qaDict[qMatches[i].question] = aMatches[i].answer;
     }
     return qaDict;
+  }
+
+  // 处理数学公式，避免 Nunjucks 解析冲突
+  private processMathFormulas(text: string): string {
+    // 处理行内数学公式 $...$ 和 $$...$$
+    let processedText = text;
+    
+    // 处理行内公式 $...$
+    processedText = processedText.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
+      // 如果公式包含 Nunjucks 语法，则包装在 raw 标签中
+      if (formula.includes('{{') || formula.includes('}}') || formula.includes('{%')) {
+        return `{% raw %}\$${formula}\${% endraw %}`;
+      }
+      return match;
+    });
+    
+    // 处理块级公式 $$...$$
+    processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+      // 如果公式包含 Nunjucks 语法，则包装在 raw 标签中
+      if (formula.includes('{{') || formula.includes('}}') || formula.includes('{%')) {
+        return `{% raw %}\$\$${formula}\$\${% endraw %}`;
+      }
+      return match;
+    });
+    
+    // 处理其他可能的数学公式格式，如 \(...\) 和 \[...\]
+    processedText = processedText.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
+      if (formula.includes('{{') || formula.includes('}}') || formula.includes('{%')) {
+        return `{% raw %}\\(${formula}\\){% endraw %}`;
+      }
+      return match;
+    });
+    
+    processedText = processedText.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+      if (formula.includes('{{') || formula.includes('}}') || formula.includes('{%')) {
+        return `{% raw %}\\[${formula}\\]{% endraw %}`;
+      }
+      return match;
+    });
+    
+    return processedText;
   }
 
   // 关闭 Puppeteer 实例（可选）

@@ -497,10 +497,20 @@ export class HFPaperPipeline extends BasePipeline {
       // 更新索引文件
       await this.updateMarkdownIndex(this.config.markdownOutputDir || './data/markdown', this.pipelineName);
 
+      // 确保关闭浏览器实例
+      if (this.paperAnalysisScraper) {
+        await this.paperAnalysisScraper.close();
+      }
+
       return {
         ...result,
         stats,
       };
+    }
+    
+    // 确保关闭浏览器实例（即使没有数据也要关闭）
+    if (this.paperAnalysisScraper) {
+      await this.paperAnalysisScraper.close();
     }
     
     return result;
@@ -545,5 +555,32 @@ export class HFPaperPipeline extends BasePipeline {
       console.error(`无法读取prompt模板文件: ${templatePath}`, error);
       throw error;
     }
+  }
+
+  public async scrapePaperAndClickLLMGenerate(): Promise<any> {
+    this.log(`开始抓取HF论文并点击LLM生成...`);
+    try {
+      const scrapeResult = await this.scrapeData();
+      if (scrapeResult) {
+        for (const item of scrapeResult.data) {
+          if (item.url) {
+            const arxivUrl = item.url.replace('https://huggingface.co/papers/', 'https://arxiv.org/abs/');
+            const arxivId = this.arxivScraper.extractArxivId(arxivUrl);
+            if (arxivId && this.paperAnalysisScraper) {
+              await this.paperAnalysisScraper.clickLLMGenerate(arxivId);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      this.logError('点击LLM生成失败', error);
+      throw error;
+    } finally {
+      // 确保关闭浏览器实例
+      if (this.paperAnalysisScraper) {
+        await this.paperAnalysisScraper.close();
+      }
+    }
+    this.log(`点击LLM生成完成`);
   }
 } 
