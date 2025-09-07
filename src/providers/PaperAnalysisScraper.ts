@@ -56,6 +56,7 @@ export class PaperAnalysisScraper {
       
       // 处理数学公式，避免 Nunjucks 解析冲突
       const processedText = this.processMathFormulas(plainText);
+      // const processedText = plainText;
       return processedText;
     } catch (error: any) {
       throw new Error(`抓取失败: ${error.message || error}`);

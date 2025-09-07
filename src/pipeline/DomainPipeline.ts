@@ -22,6 +22,7 @@ export interface DomainPipelineConfig extends Partial<PipelineConfig> {
     | 'Evaluation'
     | 'Multimodal'
     | 'Robotics'
+    | 'VLM'
   )[];
   maxResults?: number;
   includeFullText?: boolean;

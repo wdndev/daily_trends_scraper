@@ -210,16 +210,37 @@ export class ArxivPapersScraper extends BaseScraper {
   /**
    * 获取特定领域的论文
    */
-  public async getPapersByDomain(domain: 'NLP' | 'LLM' | 'Agent' | 'AI' | 'CV' | 'Evaluation' | 'Multimodal' | 'Robotics'): Promise<TrendItem[]> {
+  public async getPapersByDomain(domain: 'NLP' | 'LLM' | 'VLM' | 'Agent' | 'AI' | 'CV' | 'Evaluation' | 'Multimodal' | 'Robotics'): Promise<TrendItem[]> {
+    // const domainQueries = {
+    //   NLP: 'cat:cs.CL+OR+cat:cs.AI+AND+ti:"natural+language"',
+    //   LLM: 'cat:cs.CL+AND+(ti:"large+language+model"+OR+ti:"LLM"+OR+ti:"transformer")',
+    //   Agent: 'cat:cs.AI+AND+(ti:"agent"+OR+ti:"multi-agent"+OR+ti:"autonomous")',
+    //   AI: 'cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CL',
+    //   CV: 'cat:cs.CV+OR+(cat:cs.AI+AND+(ti:"computer+vision"+OR+ti:"image+recognition"+OR+ti:"object+detection"+OR+ti:"semantic+segmentation"+OR+ti:"image+classification"))',
+    //   Evaluation: 'cat:cs.AI+AND+(ti:"evaluation"+OR+ti:"benchmark"+OR+ti:"assessment"+OR+ti:"comparison"+OR+ti:"performance+analysis"+OR+ti:"model+evaluation"+OR+ti:"benchmarking")',
+    //   Multimodal: 'cat:cs.AI+AND+(ti:"multimodal"+OR+ti:"vision-language"+OR+ti:"text-to-image"+OR+ti:"image-to-text"+OR+ti:"visual+language+model"+OR+ti:"VLM")',
+    //   Robotics: 'cat:cs.RO+OR+(cat:cs.AI+AND+(ti:"robotics"+OR+ti:"robot"+OR+ti:"autonomous+vehicle"+OR+ti:"control+system"))',
+    //   VLM: 'cat:cs.AI+AND+(ti:"vision-language+model"+OR+ti:"VLM")',
+    // };
     const domainQueries = {
-      NLP: 'cat:cs.CL+OR+cat:cs.AI+AND+ti:"natural+language"',
-      LLM: 'cat:cs.CL+AND+(ti:"large+language+model"+OR+ti:"LLM"+OR+ti:"transformer")',
-      Agent: 'cat:cs.AI+AND+(ti:"agent"+OR+ti:"multi-agent"+OR+ti:"autonomous")',
-      AI: 'cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CL',
-      CV: 'cat:cs.CV+OR+(cat:cs.AI+AND+(ti:"computer+vision"+OR+ti:"image+recognition"+OR+ti:"object+detection"+OR+ti:"semantic+segmentation"+OR+ti:"image+classification"))',
-      Evaluation: 'cat:cs.AI+AND+(ti:"evaluation"+OR+ti:"benchmark"+OR+ti:"assessment"+OR+ti:"comparison"+OR+ti:"performance+analysis"+OR+ti:"model+evaluation"+OR+ti:"benchmarking")',
-      Multimodal: 'cat:cs.AI+AND+(ti:"multimodal"+OR+ti:"vision-language"+OR+ti:"text-to-image"+OR+ti:"image-to-text"+OR+ti:"visual+language+model"+OR+ti:"VLM")',
-      Robotics: 'cat:cs.RO+OR+(cat:cs.AI+AND+(ti:"robotics"+OR+ti:"robot"+OR+ti:"autonomous+vehicle"+OR+ti:"control+system"))',
+      // 补充stat.ML分类+NLP专属术语，避免遗漏计算语言学相关论文
+      NLP: 'cat:cs.CL+OR+cat:cs.AI+OR+cat:stat.ML+AND+(ti:"natural+language"+OR+ti:"computational+linguistics"+OR+ti:"NLP"+OR+ti:"language+processing")',
+      // 补充跨学科分类+LLM核心模型术语，覆盖基础模型与具体应用
+      LLM: 'cat:cs.CL+OR+cat:cs.AI+OR+cat:stat.ML+OR+cat:q-bio.NC+AND+(ti:"large+language+model"+OR+ti:"LLM"+OR+ti:"transformer"+OR+ti:"foundation+model"+OR+ti:"GPT"+OR+ti:"LLaMA"+OR+ti:"BERT")',
+      // 细化agent歧义描述，增加智能体专属表述
+      Agent: 'cat:cs.AI+OR+cat:cs.MA+AND+(ti:"agent"+OR+ti:"multi-agent"+OR+ti:"autonomous+agent"+OR+ti:"intelligent+agent"+OR+ti:"agent-based+system")',
+      // 补充跨学科分类，覆盖AI在统计学习、生物计算等领域应用
+      AI: 'cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CL+OR+cat:stat.ML+OR+cat:q-bio.NC+OR+cat:cs.RO',
+      // 增加图像处理分类+CV核心任务术语，覆盖图像生成、视频理解场景
+      CV: 'cat:cs.CV+OR+cat:eess.IV+OR+(cat:cs.AI+AND+(ti:"computer+vision"+OR+ti:"image+recognition"+OR+ti:"object+detection"+OR+ti:"semantic+segmentation"+OR+ti:"image+classification"+OR+ti:"image+generation"+OR+ti:"video+understanding"))',
+      // 补充评估指标/数据集术语，明确评估类论文场景
+      Evaluation: 'cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CL+AND+(ti:"evaluation"+OR+ti:"benchmark"+OR+ti:"assessment"+OR+ti:"comparison"+OR+ti:"performance+analysis"+OR+ti:"model+evaluation"+OR+ti:"benchmarking"+OR+ti:"evaluation+metric"+OR+ti:"benchmark+dataset"+OR+ti:"comparative+study")',
+      // 增加声音分类+多模态类型术语，覆盖音文跨模态场景
+      Multimodal: 'cat:cs.AI+OR+cat:cs.CV+OR+cat:cs.CL+OR+cat:cs.SD+AND+(ti:"multimodal"+OR+ti:"vision-language"+OR+ti:"text-to-image"+OR+ti:"image-to-text"+OR+ti:"visual+language+model"+OR+ti:"VLM"+OR+ti:"audio-text"+OR+ti:"multimodal+model")',
+      // 补充控制系统分类+机器人具体场景术语，覆盖移动机器人、机器人控制
+      Robotics: 'cat:cs.RO+OR+cat:eess.SY+OR+(cat:cs.AI+AND+(ti:"robotics"+OR+ti:"robot"+OR+ti:"autonomous+vehicle"+OR+ti:"control+system"+OR+ti:"robot+control"+OR+ti:"mobile+robot"))',
+      // 增加视觉/语言分类+VLM核心技术术语，覆盖预训练、理解类研究
+      VLM: 'cat:cs.AI+OR+cat:cs.CV+OR+cat:cs.CL+AND+(ti:"vision-language+model"+OR+ti:"VLM"+OR+ti:"vision-language+pre-training"+OR+ti:"visual-language+understanding")'
     };
 
     const query = domainQueries[domain];

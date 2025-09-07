@@ -83,7 +83,7 @@ function createConfigs(
       llmConfig: llmAnalysisConfig
     },
     domain: {
-      domain: ['LLM', 'Agent', 'AI', 'Evaluation'],
+      domain: ['LLM', 'Agent', 'Evaluation', 'VLM'],
       maxResults: 10,
       includeFullText: false,
       jsonOutputDir: jsonOutputDir,
