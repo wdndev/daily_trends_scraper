@@ -47,11 +47,11 @@ export class MarkdownExporter extends BaseExporter {
   }
 
   private processLLMAnalysisQAText(input: string): string {
-    // 匹配所有行首的**Q+数字**:格式，多行全局匹配，避免漏抓
-    const regex = /^\*\*Q\d+\*\*:[\s\S]*?(?=\n\*\*Q|^\*\*A|$)/gm;
+    // 匹配所有行首的**Q+数字**:格式和Q+数字:格式，多行全局匹配，避免漏抓
+    const regex = /^(?:\*\*Q\d+\*\*:|Q\d+:)[\s\S]*?(?=\n(?:\*\*Q|Q)\d+|^\*\*A|$)/gm;
     return input.replace(regex, match => {
       // 移除**和数字，统一转为Q: 开头（无论原Q1/Q2/Q3）
-      const cleanedMatch = match.replace(/^\*\*Q\d+\*\*:/, 'Q:');
+      const cleanedMatch = match.replace(/^(?:\*\*Q\d+\*\*:|Q\d+:)/, 'Q:');
       // 保持原有样式不变，确保所有Q内容都有一致的背景渲染
       return `<p style="background-color: rgba(135, 206, 235, 0.3);border-radius: 0.4rem;padding: 10px;margin: 10px 0;margin-left: -10px;font-weight: bold;">\n${cleanedMatch.trim()}\n</p>`;
     });
