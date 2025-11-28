@@ -1,4 +1,4 @@
-import { WeiboPipeline, WeiboPipelineConfig } from './pipeline/WeiboPipeline';
+import { HotNewsPipeline, HotNewsPipelineConfig } from './pipeline/HotNewsPipeline';
 import { GithubTrendingPipeline, GithubTrendingPipelineConfig } from './pipeline/GithubTrendingPipeline';
 import { HFPaperPipeline, HFPaperPipelineConfig } from './pipeline/HFPaperPipeline';
 import { DomainPipeline, DomainPipelineConfig } from './pipeline/DomainPipeline';
@@ -33,7 +33,7 @@ reloadEnvVars();
 
 // 统一配置接口
 interface PipelineConfigs {
-  weibo: WeiboPipelineConfig;
+  newsHot: HotNewsPipelineConfig;
   github: GithubTrendingPipelineConfig;
   huggingface: HFPaperPipelineConfig;
   domain: DomainPipelineConfig;
@@ -49,13 +49,16 @@ function createConfigs(
   const proxyConfig = useProxy ? { host: '127.0.0.1', port: 7890 } : undefined;
   
   return {
-    weibo: {
+    newsHot: {
+      configPath: join(process.cwd(), 'config', 'hot_news.json'),
       jsonOutputDir: jsonOutputDir,
       markdownOutputDir: markdownOutputDir,
       maxItems: 55,
       filterAds: true,
-      includeUserInfo: true,
       timeout: 30000,
+      maxRetries: 2,
+      parallel: true,
+      delayBetweenPlatforms: 1000,
       enableLogging: true,
     },
     github: {
@@ -115,11 +118,21 @@ async function executePipeline<T>(
       // 显示统计信息
       if (result.stats) {
         console.log(`\n📊 ${pipelineName}统计:`);
-        Object.entries(result.stats).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            console.log(`  ${key}: ${value}`);
-          }
-        });
+        // 特殊处理 News Hot 的多平台统计
+        if (result.stats.platforms && Array.isArray(result.stats.platforms)) {
+          console.log(`  - 成功平台: ${result.stats.totalPlatforms || result.stats.platforms.length}`);
+          console.log(`  - 总数据量: ${result.stats.totalItems || 0} 条`);
+          result.stats.platforms.forEach((platform: any) => {
+            console.log(`  - ${platform.platformName}: ${platform.totalItems} 条（含链接 ${platform.withUrl} 条）`);
+          });
+        } else {
+          // 其他 pipeline 的统计信息
+          Object.entries(result.stats).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              console.log(`  ${key}: ${value}`);
+            }
+          });
+        }
       }
       
       // 显示导出文件
@@ -155,7 +168,7 @@ async function executePipeline<T>(
 async function main() {
   const jsonOutputDir = './data_pipeline/json';
   const markdownOutputDir = './data_pipeline/markdown';
-  const useProxy = true; 
+  const useProxy = false; 
 
   const llmAnalysisConfig: LLMConfig = {
     provider: process.env.PROVIDER as 'openai' | 'qianfan' || 'openai',
@@ -179,7 +192,7 @@ async function main() {
     { name: 'HuggingFace Papers', promise: executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats') },
     { name: 'Domain Papers', promise: executePipeline('Domain Papers', DomainPipeline, configs.domain) },
     { name: 'GitHub Trending', promise: executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github) },
-    { name: 'Weibo Hot', promise: executePipeline('Weibo Hot', WeiboPipeline, configs.weibo) }
+    { name: 'News Hot', promise: executePipeline('News Hot', HotNewsPipeline, configs.newsHot, 'executeWithStats') }
   ];
   
   const pipelinePromises = pipelineConfigs.map(config => config.promise);
@@ -213,13 +226,18 @@ async function main() {
 
 
 // 导出各个流水线函数（保持向后兼容）
-async function weiboPipeline(
-  jsonOutputDir: string = './data_pipeline', 
-  markdownOutputDir: string = './data_pipeline',
-  useProxy: boolean = true
+async function newsHotPipeline(
+  jsonOutputDir: string = './data_pipeline/json', 
+  markdownOutputDir: string = './data_pipeline/markdown',
+  useProxy: boolean = true,
+  parallel: boolean = true,
+  delayBetweenPlatforms: number = 1000
 ) {
   const configs = createConfigs(jsonOutputDir, markdownOutputDir, useProxy);
-  await executePipeline('Weibo Hot', WeiboPipeline, configs.weibo);
+  // 更新配置以支持并行/顺序执行
+  configs.newsHot.parallel = parallel;
+  configs.newsHot.delayBetweenPlatforms = delayBetweenPlatforms;
+  await executePipeline('News Hot', HotNewsPipeline, configs.newsHot, 'executeWithStats');
 }
 
 async function githubPipeline(
@@ -263,10 +281,10 @@ async function executeAllPipelinesParallel(
   const startTime = Date.now();
   
   const pipelineConfigs = [
-    { name: 'HuggingFace Papers', promise: executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats') },
-    { name: 'Domain Papers', promise: executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute') },
+    // { name: 'HuggingFace Papers', promise: executePipeline('HuggingFace Papers', HFPaperPipeline, configs.huggingface, 'executeWithStats') },
+    // { name: 'Domain Papers', promise: executePipeline('Domain Papers', DomainPipeline, configs.domain, 'execute') },
     { name: 'GitHub Trending', promise: executePipeline('GitHub Trending', GithubTrendingPipeline, configs.github) },
-    { name: 'Weibo Hot', promise: executePipeline('Weibo Hot', WeiboPipeline, configs.weibo) }
+    { name: 'News Hot', promise: executePipeline('News Hot', HotNewsPipeline, configs.newsHot, 'executeWithStats') }
   ];
   
   const pipelinePromises = pipelineConfigs.map(config => config.promise);
@@ -314,4 +332,4 @@ if (require.main === module) {
   main().catch(console.error);
 }
 
-export { domainPipeline, huggingfacePipeline, githubPipeline, weiboPipeline, executeAllPipelinesParallel };
+export { domainPipeline, huggingfacePipeline, githubPipeline, newsHotPipeline, executeAllPipelinesParallel };

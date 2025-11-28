@@ -7,6 +7,11 @@ export class MarkdownExporter extends BaseExporter {
     const dateStr = moment().format('YYYY-MM-DD');
     const time = moment().format('HH:mm:ss');
 
+    // 如果 processedData 包含多平台数据（allPlatformData），使用合并格式
+    if (processedData?.allPlatformData && Array.isArray(processedData.allPlatformData)) {
+      return this.generateMergedNewsApiMarkdown(processedData.allPlatformData, dateStr, time, processedData.totalItems);
+    }
+
     // 按来源分组
     const groupedItems = this.groupBySource(items);
 
@@ -19,7 +24,7 @@ export class MarkdownExporter extends BaseExporter {
           markdown += this.generateGitHubMarkdown(sourceItems, dateStr);
           break;
         case 'Weibo Hot':
-          markdown += this.generateWeiboMarkdown(sourceItems, dateStr);
+          markdown += this.generateNewsApiMarkdown(sourceItems, dateStr);
           break;
         case 'HuggingFace Papers':
           markdown += this.generateHuggingFaceMarkdown(sourceItems, dateStr);
@@ -79,20 +84,6 @@ export class MarkdownExporter extends BaseExporter {
     return md;
   }
 
-  private generateWeiboMarkdown(items: TrendItem[], dateStr: string): string {
-    let md = `---\ntitle: Weibo Hot ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [微博, 热搜]\ncategories: \n- 微博\nhidden: true\ncomments: false\n---\n\n`;
-    md += `> 数据来源：[微博热搜](https://s.weibo.com/top/summary)\n\n`;
-    md += `| 排名 | 话题 | 热度 | 用户 |\n|:----:|:------|:-----:|:----:|\n`;
-
-    items.forEach((item, i) => {
-      const metadata = item.metadata || {};
-      const hotValue = metadata.hotValue || metadata.descExtr || '';
-      const user = metadata.user || '';
-      md += `| ${i + 1} | [${item.title}](${item.url || '#'}) | ${hotValue} | ${user} |\n`;
-    });
-
-    return md;
-  }
 
   private generateHuggingFaceMarkdown(
     items: TrendItem[],
@@ -202,4 +193,63 @@ export class MarkdownExporter extends BaseExporter {
       {} as Record<string, TrendItem[]>
     );
   }
-} 
+
+
+  /**
+   * 生成新闻API平台的表格格式Markdown
+   */
+  private generateNewsApiMarkdown(items: TrendItem[], dateStr: string): string {
+    let md = `## Hot News ${dateStr}\n\n`;
+    md += `| 排名 | 标题 | 链接 |\n|:----:|:------|:-----:|\n`;
+
+    items.forEach((item) => {
+      const metadata = item.metadata || {};
+      const rank = metadata.rank || 0;
+      const url = item.url || '#';
+      // 转义表格中的特殊字符
+      const title = item.title.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+      md += `| ${rank} | ${title} | [查看](${url}) |\n`;
+    });
+
+    md += `\n`;
+    return md;
+  }
+
+  /**
+   * 生成合并多平台的 Markdown 格式
+   */
+  private generateMergedNewsApiMarkdown(
+    allPlatformData: Array<{ platformName: string; items: TrendItem[] }>,
+    dateStr: string,
+    time: string,
+    totalItems: number
+  ): string {
+    let markdown = `# 每日热点汇总 ${dateStr}\n\n`;
+    markdown += `**生成时间**: ${dateStr} ${time}\n\n`;
+    markdown += `**平台数量**: ${allPlatformData.length} 个\n\n`;
+    markdown += `**数据总量**: ${totalItems} 条\n\n`;
+    markdown += `---\n\n`;
+
+    // 为每个平台生成表格
+    allPlatformData.forEach((platformData) => {
+      const { platformName, items } = platformData;
+      
+      // 使用 ## 作为平台标题
+      markdown += `## ${platformName}\n\n`;
+      markdown += `| 排名 | 标题 | 链接 |\n|:----:|:------|:-----:|\n`;
+
+      items.forEach((item) => {
+        const metadata = item.metadata || {};
+        const rank = metadata.rank || 0;
+        const url = item.url || '#';
+        // 转义表格中的特殊字符
+        const title = item.title.replace(/\|/g, '\\|').replace(/\n/g, ' ').replace(/\r/g, '');
+        markdown += `| ${rank} | ${title} | [查看](${url}) |\n`;
+      });
+
+      markdown += `\n`;
+    });
+
+    return markdown;
+  }
+}

@@ -1,5 +1,5 @@
 import { GitHubTrendingScraper } from './scrapers/GitHubTrendingScraper';
-import { WeiboHotScraper } from './scrapers/WeiboHotScraper';
+import { HotNewsScraper } from './scrapers/HotNewsScraper';
 import { HuggingFacePapersScraper } from './scrapers/HuggingFacePapersScraper';
 
 if (require.main === module) {

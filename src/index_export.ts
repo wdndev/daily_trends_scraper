@@ -1,16 +1,16 @@
 import fs from 'fs';
 import { MarkdownExporter } from './exporters/MarkdownExporter';
 import { JSONExporter } from './exporters/JSONExporter';
-import { ExporterConfig } from './types';
-import { WeiboHotScraper } from './scrapers/WeiboHotScraper';
+import { ExporterConfig, ScraperConfig } from './types';
+import { HotNewsScraper } from './scrapers/HotNewsScraper';
 import { GitHubTrendingScraper } from './scrapers/GitHubTrendingScraper';
 import { HuggingFacePapersScraper } from './scrapers/HuggingFacePapersScraper';
 
 async function getWeiboHotData() {
-  const weibo_scraper = new WeiboHotScraper({
+  const weibo_scraper = new HotNewsScraper({
     url: 'https://s.weibo.com/top/summary',
     timeout: 30000,
-  });
+  }, 'weibo', 'Weibo Hot');
   const result = await weibo_scraper.scrape();
   return result;
 }
