@@ -10,7 +10,7 @@ async function getWeiboHotData() {
   const weibo_scraper = new HotNewsScraper({
     url: 'https://s.weibo.com/top/summary',
     timeout: 30000,
-  }, 'weibo', 'Weibo Hot');
+  }, 'hot_news', 'Hot News');
   const result = await weibo_scraper.scrape();
   return result;
 }

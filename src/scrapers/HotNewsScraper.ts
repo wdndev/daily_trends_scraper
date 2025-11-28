@@ -138,12 +138,13 @@ export class HotNewsScraper extends BaseScraper {
           title,
           description: '',
           url: finalUrl || undefined,
-          source: this.platformName,
+          source: 'Hot News',  // source 是 pipeline 级别的，HotNewsPipeline 的所有数据 source 都是 "Hot News"
           timestamp: new Date(),
           metadata: {
             rank: index + 1,
             originalUrl: originalUrl,
             mobileUrl: item.mobileUrl,
+            platformName: this.platformName,  // 平台名称存储在 metadata 中
           },
         });
       });

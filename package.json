@@ -1,7 +1,7 @@
 {
   "name": "daily-trends-scraper",
   "version": "1.0.0",
-  "description": "Daily trends scraper for GitHub Trending, Weibo Hot, and HuggingFace Papers",
+  "description": "Daily trends scraper for GitHub Trending, Hot News, and HuggingFace Papers",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -26,7 +26,7 @@
     "scraper",
     "trends",
     "github",
-    "weibo",
+    "hot_news",
     "huggingface"
   ],
   "author": "",

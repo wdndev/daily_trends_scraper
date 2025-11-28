@@ -189,7 +189,7 @@ export abstract class BasePipeline {
 
       const titleMap = {
         domain: "Arxiv Domain Papers",
-        weibo: "Weibo Hot",
+        hot_news: "Hot News",
         github: "GitHub Trending",
         hf: "HuggingFace Papers"
       };

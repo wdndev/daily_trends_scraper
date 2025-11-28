@@ -7,13 +7,42 @@ export class MarkdownExporter extends BaseExporter {
     const dateStr = moment().format('YYYY-MM-DD');
     const time = moment().format('HH:mm:ss');
 
-    // 如果 processedData 包含多平台数据（allPlatformData），使用合并格式
-    if (processedData?.allPlatformData && Array.isArray(processedData.allPlatformData)) {
-      return this.generateMergedNewsApiMarkdown(processedData.allPlatformData, dateStr, time, processedData.totalItems);
-    }
-
     // 按来源分组
     const groupedItems = this.groupBySource(items);
+
+    // 如果数据为空，需要根据配置推断来源类型并生成默认的失败消息
+    if (Object.keys(groupedItems).length === 0) {
+      // 尝试从文件名推断来源类型
+      const filename = this.config.filename.toLowerCase();
+      let inferredSource: string | null = null;
+      
+      if (filename.includes('github')) {
+        inferredSource = 'GitHub Trending';
+      } else if (filename.includes('huggingface') || filename.includes('hf')) {
+        inferredSource = 'HuggingFace Papers';
+      } else if (filename.includes('arxiv') || filename.includes('domain')) {
+        inferredSource = 'ArXiv Domain';
+      } else if (filename.includes('weibo') || filename.includes('hot_news')) {
+        inferredSource = 'HotNews';
+      }
+      
+      // 如果推断出来源类型，使用对应的格式生成（保留 frontmatter）
+      if (inferredSource) {
+        switch (inferredSource) {
+          case 'GitHub Trending':
+            return this.generateGitHubMarkdown([], dateStr);
+          case 'HuggingFace Papers':
+            return this.generateHuggingFaceMarkdown([], dateStr);
+          case 'ArXiv Domain':
+            return this.generateArXivDomainMarkdown([], dateStr);
+          case 'HotNews':
+            return this.generateHotNewsMarkdown([], dateStr);
+        }
+      }
+      
+      // 如果没有来源信息，使用默认格式
+      return this.generateDefaultMarkdown([], '数据抓取', dateStr, time);
+    }
 
     let markdown = '';
 
@@ -23,8 +52,8 @@ export class MarkdownExporter extends BaseExporter {
         case 'GitHub Trending':
           markdown += this.generateGitHubMarkdown(sourceItems, dateStr);
           break;
-        case 'Weibo Hot':
-          markdown += this.generateNewsApiMarkdown(sourceItems, dateStr);
+        case 'Hot News':
+          markdown += this.generateHotNewsMarkdown(sourceItems, dateStr);
           break;
         case 'HuggingFace Papers':
           markdown += this.generateHuggingFaceMarkdown(sourceItems, dateStr);
@@ -65,6 +94,14 @@ export class MarkdownExporter extends BaseExporter {
   private generateGitHubMarkdown(items: TrendItem[], dateStr: string): string {
     let md = `---\ntitle: GitHub Trending ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [GitHub, Trending]\ncategories: \n- GitHub\nhidden: true\ncomments: false\n---\n\n`;
     md += `> 数据来源：[github.com/trending](https://github.com/trending)\n\n`;
+    
+    // 如果数据为空，显示抓取失败消息
+    if (items.length === 0) {
+      md += `## 抓取失败\n\n`;
+      md += `未能获取到 GitHub Trending 数据，请稍后重试。\n\n`;
+      return md;
+    }
+    
     // md += `## Any Languages\n\n`;
     let pre_language = '';
     items.forEach(repo => {
@@ -91,6 +128,15 @@ export class MarkdownExporter extends BaseExporter {
   ): string {
     let md = `---\ntitle: HuggingFace Papers ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [HuggingFace, Papers, AI]\ncategories: \n- AI\nhidden: true\ncomments: false\n---\n\n`;
     md += `> 数据来源：[HuggingFace Papers](https://huggingface.co/papers)\n\n`;
+    
+    // 如果数据为空，显示抓取失败消息
+    if (items.length === 0) {
+      md += `## Latest Papers\n\n`;
+      md += `## 抓取失败\n\n`;
+      md += `未能获取到 HuggingFace Papers 数据，请稍后重试。\n\n`;
+      return md;
+    }
+    
     md += `## Latest Papers\n\n`;
 
     items.forEach((paper, i) => {
@@ -123,6 +169,13 @@ export class MarkdownExporter extends BaseExporter {
   ): string {
     let md = `---\ntitle: ArXiv Domain ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [ArXiv, Domain, AI]\ncategories: \n- AI\nhidden: true\ncomments: false\n---\n\n`;
     md += `> 数据来源：[ArXiv Domain](https://arxiv.org)\n\n`;
+
+    // 如果数据为空，显示抓取失败消息
+    if (items.length === 0) {
+      md += `## 抓取失败\n\n`;
+      md += `未能获取到 ArXiv Domain 数据，请稍后重试。\n\n`;
+      return md;
+    }
 
     let pre_domain = '';
     items.forEach(paper => {
@@ -160,9 +213,16 @@ export class MarkdownExporter extends BaseExporter {
     dateStr: string,
     time: string
   ): string {
-    let markdown = `# ${source} 趋势报告\n\n`;
+    let markdown = `---\ntitle: Default Markdown ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [default]\ncategories: \n- default\nhidden: true\ncomments: false\n---\n\n`;
     markdown += `**生成时间**: ${dateStr} ${time}\n\n`;
     markdown += `**数据总量**: ${items.length} 条\n\n`;
+
+    // 如果数据为空，显示抓取失败消息
+    if (items.length === 0) {
+      markdown += `## 抓取失败\n\n`;
+      markdown += `未能获取到 ${source} 数据，请稍后重试。\n\n`;
+      return markdown;
+    }
 
     items.forEach((item, index) => {
       markdown += `### ${index + 1}. ${item.title}\n\n`;
@@ -197,59 +257,47 @@ export class MarkdownExporter extends BaseExporter {
 
   /**
    * 生成新闻API平台的表格格式Markdown
+   * 按平台分组，每个平台使用二级标题区分
    */
-  private generateNewsApiMarkdown(items: TrendItem[], dateStr: string): string {
-    let md = `## Hot News ${dateStr}\n\n`;
-    md += `| 排名 | 标题 | 链接 |\n|:----:|:------|:-----:|\n`;
-
-    items.forEach((item) => {
+  private generateHotNewsMarkdown(items: TrendItem[], dateStr: string): string {
+    let md = `---\ntitle: Hot News ${dateStr}\ndate: 2019-06-18\nauthor: wdndev\ntags: [HotNews]\ncategories: \n- HotNews\nhidden: true\ncomments: false\n---\n\n`;
+    
+    // 如果数据为空，显示抓取失败消息
+    if (items.length === 0) {
+      md += `### 抓取失败\n\n`;
+      md += `未能获取到热点新闻数据，请稍后重试。\n\n`;
+      return md;
+    }
+    
+    // 按平台分组
+    const groupedByPlatform = items.reduce((groups, item) => {
       const metadata = item.metadata || {};
-      const rank = metadata.rank || 0;
-      const url = item.url || '#';
-      // 转义表格中的特殊字符
-      const title = item.title.replace(/\|/g, '\\|').replace(/\n/g, ' ');
-      md += `| ${rank} | ${title} | [查看](${url}) |\n`;
-    });
+      const platformName = metadata.platformName || '未知平台';
+      if (!groups[platformName]) {
+        groups[platformName] = [];
+      }
+      groups[platformName].push(item);
+      return groups;
+    }, {} as Record<string, TrendItem[]>);
 
-    md += `\n`;
-    return md;
-  }
-
-  /**
-   * 生成合并多平台的 Markdown 格式
-   */
-  private generateMergedNewsApiMarkdown(
-    allPlatformData: Array<{ platformName: string; items: TrendItem[] }>,
-    dateStr: string,
-    time: string,
-    totalItems: number
-  ): string {
-    let markdown = `# 每日热点汇总 ${dateStr}\n\n`;
-    markdown += `**生成时间**: ${dateStr} ${time}\n\n`;
-    markdown += `**平台数量**: ${allPlatformData.length} 个\n\n`;
-    markdown += `**数据总量**: ${totalItems} 条\n\n`;
-    markdown += `---\n\n`;
-
-    // 为每个平台生成表格
-    allPlatformData.forEach((platformData) => {
-      const { platformName, items } = platformData;
+    // 为每个平台生成二级标题和表格
+    Object.entries(groupedByPlatform).forEach(([platformName, platformItems]) => {
+      md += `## ${platformName}\n\n`;
       
-      // 使用 ## 作为平台标题
-      markdown += `## ${platformName}\n\n`;
-      markdown += `| 排名 | 标题 | 链接 |\n|:----:|:------|:-----:|\n`;
+      md += `| 排名 | 标题 | 链接 |\n|:----:|:------|:-----:|\n`;
 
-      items.forEach((item) => {
+      platformItems.forEach((item) => {
         const metadata = item.metadata || {};
         const rank = metadata.rank || 0;
         const url = item.url || '#';
         // 转义表格中的特殊字符
-        const title = item.title.replace(/\|/g, '\\|').replace(/\n/g, ' ').replace(/\r/g, '');
-        markdown += `| ${rank} | ${title} | [查看](${url}) |\n`;
+        const title = item.title.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+        md += `| ${rank} | ${title} | [查看](${url}) |\n`;
       });
 
-      markdown += `\n`;
+      md += `\n`;
     });
 
-    return markdown;
+    return md;
   }
 }

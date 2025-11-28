@@ -354,13 +354,15 @@ export class HotNewsPipeline extends BasePipeline {
         this.log(`  - ${platform.platformName}: ${platform.totalItems} 条（含链接 ${platform.withUrl} 条）`);
       });
 
-      // 合并所有平台的数据
+      // 合并所有平台的数据（source 已经在 HotNewsScraper 中设置为 "Hot News"）
       const allItems: TrendItem[] = [];
       allPlatformData.forEach(platformData => {
         allItems.push(...platformData.items);
       });
 
-      // 准备 processedData 用于导出器适配多平台格式
+      // 所有 item 的 source 都是 "Hot News"（在 HotNewsScraper 中已设置）
+      // 平台信息存储在 item.metadata.platformName 中
+      // 导出器会根据 source 分组并使用 generateHotNewsMarkdown
       const processedData = allPlatformData.length > 0 ? {
         totalPlatforms: allPlatformData.length,
         totalItems: allItems.length,
@@ -368,7 +370,6 @@ export class HotNewsPipeline extends BasePipeline {
           platformName: p.platformName,
           itemCount: p.items.length,
         })),
-        allPlatformData: allPlatformData, // 保留原始多平台数据结构，供导出器使用
       } : undefined;
 
       // 使用父类的 exportData 方法导出数据
@@ -424,7 +425,8 @@ export class HotNewsPipeline extends BasePipeline {
     for (const exporter of this.exporters) {
       try {
         // 调用导出器的 export 方法，传入 items 和 processedData
-        // 导出器会根据 processedData 中的 allPlatformData 自动适配格式
+        // 所有 item 的 source 都是 "Hot News"（在 HotNewsScraper 中已设置）
+        // 导出器会根据 source 分组并使用 generateHotNewsMarkdown
         const result = await exporter.export(items, processedData);
         results.push(result);
         
